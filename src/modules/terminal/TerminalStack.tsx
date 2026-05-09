@@ -38,14 +38,23 @@ function PaneTree({ tabId, pane }: { tabId: string; pane: Pane }) {
   if (pane.kind === "leaf") {
     return (
       <div
-        style={{ width: "100%", height: "100%" }}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          width: "100%",
+          height: "100%",
+          minHeight: 0,
+        }}
         onMouseDown={(e) => {
           // Click anywhere on the pane → focus it. Stop propagation so the
           // outer pointer-events-none guard doesn't swallow the focus when
           // multiple inactive tabs co-exist with active splits.
           e.stopPropagation();
           if (!pane.active) {
-            const next = focusPane(useTabs.getState().tabs.find((t) => t.id === tabId)?.panes ?? pane, pane.sessionId);
+            const next = focusPane(
+              useTabs.getState().tabs.find((t) => t.id === tabId)?.panes ?? pane,
+              pane.sessionId,
+            );
             useTabs.getState().setPanes(tabId, next);
           }
         }}
@@ -55,7 +64,7 @@ function PaneTree({ tabId, pane }: { tabId: string; pane: Pane }) {
     );
   }
   return (
-    <div className={`vy-split ${pane.dir}`}>
+    <div className={`vy-split ${pane.dir}`} style={{ width: "100%", height: "100%" }}>
       <PaneTree tabId={tabId} pane={pane.a} />
       <div className={`vy-gutter ${pane.dir}`} />
       <PaneTree tabId={tabId} pane={pane.b} />
