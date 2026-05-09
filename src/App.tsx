@@ -30,6 +30,7 @@ export default function App() {
   const settings = useSettings();
   const [valleyMd, setValleyMd] = useState<string | null>(null);
   const [omnibarOpen, setOmnibarOpen] = useState(false);
+  const [aiPanelOpen, setAiPanelOpen] = useState(false);
 
   useEffect(() => {
     void hydrateSettings();
@@ -65,7 +66,7 @@ export default function App() {
       const id = useTabs.getState().activeId;
       if (id) useTabs.getState().close(id);
     },
-    "ai.toggle": () => { /* TODO: pin/unpin AiPanel */ },
+    "ai.toggle": () => setAiPanelOpen((v) => !v),
     "ai.focus.composer": () => { /* TODO: focus the .vy-aipanel-composer input */ },
     "omnibar.open": () => setOmnibarOpen((v: boolean) => !v),
     "explorer.toggle": () => { /* TODO: toggle showSidebar */ },
@@ -91,7 +92,9 @@ export default function App() {
   const tabsHidden = screen === "zen" && !tabsHover;
   const showSidebar =
     ["full", "splits", "ai", "ghost", "error"].includes(screen);
-  const showAiPanel = ["full", "ai", "ghost"].includes(screen);
+  // AI panel is hidden by default. ⌘I toggles it open. The dev-only `?screen=ai`
+  // and `?screen=ghost` pills still force it visible for the design switcher.
+  const showAiPanel = aiPanelOpen || ["ai", "ghost"].includes(screen);
   const aiPending = screen === "ai";
   const showOmnibar = screen === "omnibar";
   const isSettings = screen === "settings";
