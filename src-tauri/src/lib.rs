@@ -27,6 +27,9 @@ pub fn run() {
             modules::fs::mutate::fs_create_dir,
             modules::fs::mutate::fs_rename,
             modules::fs::mutate::fs_delete,
+            modules::fs::grep::fs_grep,
+            modules::fs::grep::fs_glob,
+            modules::fs::search::fs_search,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
