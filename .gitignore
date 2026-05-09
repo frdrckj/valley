@@ -16,3 +16,4 @@ dist-ssr
 # tauri (added in Phase 1 implementation)
 src-tauri/target
 src-tauri/Cargo.lock
+src-tauri/gen/

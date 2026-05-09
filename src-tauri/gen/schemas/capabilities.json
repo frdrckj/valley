@@ -1,1 +1,0 @@
-{"default":{"identifier":"default","description":"Default capabilities for the main window","local":true,"windows":["main","settings"],"permissions":["core:default","opener:default","os:default","store:default","process:default","log:default"]}}
