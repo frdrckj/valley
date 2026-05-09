@@ -1,7 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { TitleBar } from "@/modules/header/TitleBar";
-import { TabStrip } from "@/modules/tabs/TabStrip";
 import { useTabs } from "@/modules/tabs/useTabs";
 import { FileTree } from "@/modules/explorer/FileTree";
 import { StatusBar } from "@/modules/statusbar/StatusBar";
@@ -26,7 +25,6 @@ const WORKSPACE_ROOT = "/Users/frederickjerusha/Documents/works/terminal/valley"
 
 export default function App() {
   const [screen, setScreen] = useState<ScreenId>(readScreen());
-  const [tabsHover, setTabsHover] = useState(false);
   const { sidebar: sidebarSide, ai: aiSide } = useLayout();
   const settings = useSettings();
   const [valleyMd, setValleyMd] = useState<string | null>(null);
@@ -92,7 +90,6 @@ export default function App() {
     void patchSettings({ theme: t });
   }
 
-  const tabsHidden = screen === "zen" && !tabsHover;
   // Explorer + AI panel are both hidden by default — minimalist by design.
   // ⌘B toggles explorer, ⌘I toggles AI panel.  The dev-only screen URL flags
   // (?screen=full / ?screen=ai etc.) still force them visible for the design
@@ -115,16 +112,7 @@ export default function App() {
 
   return (
     <div className="vy-app">
-      <TitleBar />
-
-      {!isSettings && (
-        <div
-          onMouseEnter={() => setTabsHover(true)}
-          onMouseLeave={() => setTabsHover(false)}
-        >
-          <TabStrip hidden={tabsHidden} />
-        </div>
-      )}
+      <TitleBar onToggleSidebar={() => setExplorerOpen((v) => !v)} />
 
       <div className="vy-body">
         {isSettings ? (

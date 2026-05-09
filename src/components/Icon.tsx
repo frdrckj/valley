@@ -26,7 +26,9 @@ export type IconName =
   | "warn"
   | "alert"
   | "pin"
-  | "resize";
+  | "resize"
+  | "panel-left"
+  | "keyboard";
 
 const ICON_PATHS: Record<IconName, string> = {
   terminal: '<path d="m4 17 6-6-6-6"/><path d="M12 19h8"/>',
@@ -72,6 +74,10 @@ const ICON_PATHS: Record<IconName, string> = {
     '<line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14V9.5a2.5 2.5 0 0 0-2.5-2.5h-9A2.5 2.5 0 0 0 5 9.5z"/><path d="M9 7V3h6v4"/>',
   resize:
     '<polyline points="9 3 3 3 3 9"/><polyline points="15 21 21 21 21 15"/><line x1="3" y1="3" x2="10" y2="10"/><line x1="21" y1="21" x2="14" y2="14"/>',
+  "panel-left":
+    '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/>',
+  keyboard:
+    '<rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="10"/><line x1="10" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="14" y2="10"/><line x1="18" y1="10" x2="18" y2="10"/><line x1="6" y1="14" x2="14" y2="14"/>',
 };
 
 interface IconProps {
