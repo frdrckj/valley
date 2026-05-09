@@ -30,6 +30,9 @@ pub fn run() {
             modules::fs::grep::fs_grep,
             modules::fs::grep::fs_glob,
             modules::fs::search::fs_search,
+            modules::secrets::secrets_get,
+            modules::secrets::secrets_set,
+            modules::secrets::secrets_delete,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
