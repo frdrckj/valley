@@ -10,6 +10,7 @@ export interface Settings {
   defaultProvider: "openai" | "anthropic";
   defaultModel: string;
   autoApproveReadTools: boolean;
+  showHiddenFiles: boolean;
 }
 
 const DEFAULTS: Settings = {
@@ -19,6 +20,7 @@ const DEFAULTS: Settings = {
   defaultProvider: "anthropic",
   defaultModel: "claude-haiku-4-5-20251001",
   autoApproveReadTools: true,
+  showHiddenFiles: false,
 };
 
 let cached: Settings = DEFAULTS;

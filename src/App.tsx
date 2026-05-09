@@ -76,9 +76,11 @@ export default function App() {
     "settings.open": () => void invoke("open_settings_window"),
     "tab.new": () => useTabs.getState().open({ kind: "terminal", label: "zsh" }),
     "tab.newPreview": () => {
-      // Phase 3 — preview tabs land with the editor module. Show a marker
-      // for now so the binding doesn't feel dead.
-      console.log("[valley] tab.newPreview not implemented (Phase 3)");
+      useTabs.getState().open({
+        kind: "preview",
+        label: "preview",
+        url: "http://localhost:3000",
+      });
     },
     "tab.newEditor": () => {
       console.log("[valley] tab.newEditor not implemented (Phase 3)");

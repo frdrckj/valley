@@ -4,10 +4,12 @@ import { newLeaf } from "@/modules/terminal/lib/splits";
 
 export type Tab = {
   id: string;
-  kind: "terminal";
+  kind: "terminal" | "preview";
   cwd?: string;
   label: string;
   panes: Pane;
+  /** Preview-tab url. Ignored for terminal tabs. */
+  url?: string;
 };
 
 interface TabsState {
@@ -19,6 +21,7 @@ interface TabsState {
   rename(id: string, label: string): void;
   setPanes(id: string, panes: Pane): void;
   setCwd(id: string, cwd: string): void;
+  setUrl(id: string, url: string): void;
 }
 
 let counter = 0;
@@ -35,6 +38,7 @@ export const useTabs = create<TabsState>((set, get) => ({
       cwd: input.cwd,
       label: input.label,
       panes: newLeaf(`pty-${id}`),
+      url: input.url,
     };
     set((s) => ({ tabs: [...s.tabs, tab], activeId: id }));
     return id;
@@ -58,5 +62,8 @@ export const useTabs = create<TabsState>((set, get) => ({
     const t = get().tabs.find((t) => t.id === id);
     if (!t || t.cwd === cwd) return;
     set({ tabs: get().tabs.map((t) => (t.id === id ? { ...t, cwd } : t)) });
+  },
+  setUrl(id, url) {
+    set({ tabs: get().tabs.map((t) => (t.id === id ? { ...t, url } : t)) });
   },
 }));

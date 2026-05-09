@@ -65,6 +65,19 @@ function AppearancePanel() {
         <Row title="AI panel position" sub="valley chat · default left">
           <SideSeg value={layout.ai} onChange={layout.setAi} />
         </Row>
+        <Row
+          title="Show hidden files"
+          sub="dotfiles in the explorer · node_modules / __pycache__ stay hidden either way"
+        >
+          <Switch
+            on={settings.showHiddenFiles}
+            onChange={() =>
+              void patchSettings({
+                showHiddenFiles: !settings.showHiddenFiles,
+              })
+            }
+          />
+        </Row>
       </Section>
 
       <Section label="THEME">

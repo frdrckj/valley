@@ -2,6 +2,7 @@ import { useTree } from "./lib/useTree";
 import { Icon, type IconName } from "@/components/Icon";
 import type { Side } from "@/lib/layout";
 import type { DirEntry } from "@/lib/native";
+import { useSettings } from "@/lib/settings";
 
 interface FileTreeProps {
   root: string;
@@ -10,7 +11,8 @@ interface FileTreeProps {
 }
 
 export function FileTree({ root, collapsed, side = "left" }: FileTreeProps) {
-  const { topLevel, byPath, toggle } = useTree(root);
+  const showHidden = useSettings().showHiddenFiles;
+  const { topLevel, byPath, toggle } = useTree(root, showHidden);
   if (collapsed) return null;
 
   return (
