@@ -13,6 +13,7 @@ export interface UseTerminalSession {
   attach: (host: HTMLDivElement) => void;
   fit: () => void;
   cwd: string | null;
+  getTail: () => string;
 }
 
 export function useTerminalSession(opts: {
@@ -24,6 +25,7 @@ export function useTerminalSession(opts: {
   const fitRef = useRef<FitAddon | null>(null);
   const bridgeRef = useRef<PtyBridge | null>(null);
   const oscDisposerRef = useRef<(() => void) | null>(null);
+  const tailRef = useRef<string[]>([]);
 
   function attach(host: HTMLDivElement) {
     if (termRef.current) return;
@@ -58,6 +60,12 @@ export function useTerminalSession(opts: {
       id: opts.sessionId,
       cwd: opts.cwd,
       term,
+      onOutput: (raw) => {
+        const text = new TextDecoder().decode(raw);
+        const lines = text.split(/\r?\n/);
+        for (const ln of lines) tailRef.current.push(ln);
+        while (tailRef.current.length > 300) tailRef.current.shift();
+      },
     }).then((b) => {
       bridgeRef.current = b;
     });
@@ -70,6 +78,10 @@ export function useTerminalSession(opts: {
     fitRef.current?.fit();
   }
 
+  function getTail(): string {
+    return tailRef.current.join("\n");
+  }
+
   useEffect(() => {
     return () => {
       oscDisposerRef.current?.();
@@ -78,7 +90,7 @@ export function useTerminalSession(opts: {
     };
   }, []);
 
-  return { attach, fit, cwd };
+  return { attach, fit, cwd, getTail };
 }
 
 const gruvboxDarkXTerm = {

@@ -16,6 +16,7 @@ import {
 } from "@/lib/screen";
 import { useLayout, type Side } from "@/lib/layout";
 import { hydrateSettings, useSettings, patchSettings } from "@/lib/settings";
+import { setLive } from "@/lib/workspace";
 
 const WORKSPACE_ROOT = "/Users/frederickjerusha/Documents/works/terminal/valley";
 
@@ -32,6 +33,14 @@ export default function App() {
   useEffect(() => {
     const { tabs, open } = useTabs.getState();
     if (tabs.length === 0) open({ kind: "terminal", label: "zsh" });
+  }, []);
+
+  useEffect(() => {
+    setLive({
+      cwd: () => null,           // TODO: per-pane cwd
+      terminalTail: () => "",    // TODO: per-pane tail
+      valleyMd: () => null,      // J2 fills this in
+    });
   }, []);
 
   useEffect(() => {
