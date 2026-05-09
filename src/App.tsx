@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { TitleBar } from "@/modules/header/TitleBar";
 import { TabStrip } from "@/modules/tabs/TabStrip";
 import { useTabs } from "@/modules/tabs/useTabs";
@@ -18,6 +19,7 @@ import { useLayout, type Side } from "@/lib/layout";
 import { hydrateSettings, useSettings, patchSettings } from "@/lib/settings";
 import { setLive } from "@/lib/workspace";
 import { native } from "@/lib/native";
+import { useGlobalShortcuts } from "@/modules/shortcuts/useGlobalShortcuts";
 
 const WORKSPACE_ROOT = "/Users/frederickjerusha/Documents/works/terminal/valley";
 
@@ -57,19 +59,26 @@ export default function App() {
     document.documentElement.dataset.theme = resolved;
   }, [settings.theme]);
 
+  useGlobalShortcuts({
+    "tab.new": () => useTabs.getState().open({ kind: "terminal", label: "zsh" }),
+    "tab.close": () => {
+      const id = useTabs.getState().activeId;
+      if (id) useTabs.getState().close(id);
+    },
+    "ai.toggle": () => { /* TODO: pin/unpin AiPanel */ },
+    "ai.focus.composer": () => { /* TODO: focus the .vy-aipanel-composer input */ },
+    "omnibar.open": () => setOmnibarOpen((v: boolean) => !v),
+    "explorer.toggle": () => { /* TODO: toggle showSidebar */ },
+    "settings.open": () => void invoke("open_settings_window"),
+  });
+
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setOmnibarOpen((v) => !v);
-      }
-      if (e.key === "Escape") {
-        setOmnibarOpen(false);
-      }
+    const h = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && omnibarOpen) setOmnibarOpen(false);
     };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [omnibarOpen]);
 
   function pickScreen(s: ScreenId) {
     setScreen(s);
