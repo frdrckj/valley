@@ -17,6 +17,7 @@ import {
 import { useLayout, type Side } from "@/lib/layout";
 import { hydrateSettings, useSettings, patchSettings } from "@/lib/settings";
 import { setLive } from "@/lib/workspace";
+import { native } from "@/lib/native";
 
 const WORKSPACE_ROOT = "/Users/frederickjerusha/Documents/works/terminal/valley";
 
@@ -25,9 +26,15 @@ export default function App() {
   const [tabsHover, setTabsHover] = useState(false);
   const { sidebar: sidebarSide, ai: aiSide } = useLayout();
   const settings = useSettings();
+  const [valleyMd, setValleyMd] = useState<string | null>(null);
 
   useEffect(() => {
     void hydrateSettings();
+  }, []);
+
+  useEffect(() => {
+    const path = `${WORKSPACE_ROOT}/VALLEY.md`;
+    native.fs.readFile(path).then(setValleyMd).catch(() => setValleyMd(null));
   }, []);
 
   useEffect(() => {
@@ -39,9 +46,9 @@ export default function App() {
     setLive({
       cwd: () => null,           // TODO: per-pane cwd
       terminalTail: () => "",    // TODO: per-pane tail
-      valleyMd: () => null,      // J2 fills this in
+      valleyMd: () => valleyMd,
     });
-  }, []);
+  }, [valleyMd]);
 
   useEffect(() => {
     // "auto" falls back to dark until media-query handling is added (TODO).

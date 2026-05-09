@@ -4,6 +4,7 @@ import { makeDirectTransport, type AppMessage } from "../lib/transport";
 import { buildAgent } from "../lib/agent";
 import { loadMessages, saveMessages } from "../lib/sessions";
 import { getSettingsSnapshot } from "@/lib/settings";
+import { getLive } from "@/lib/workspace";
 
 const chats = new Map<string, Chat<AppMessage>>();
 
@@ -21,6 +22,7 @@ export async function getOrCreateChat(
       provider: settings.defaultProvider,
       apiKey,
       model: settings.defaultModel,
+      systemExtra: getLive().valleyMd() ?? undefined,
     }),
   );
 
