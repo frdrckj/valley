@@ -18,7 +18,13 @@ const SCREEN_IDS = new Set(SCREENS.map((s) => s.id));
 export function readScreen(): ScreenId {
   const u = new URL(window.location.href);
   const v = u.searchParams.get("screen");
-  return SCREEN_IDS.has(v as ScreenId) ? (v as ScreenId) : "full";
+  return SCREEN_IDS.has(v as ScreenId) ? (v as ScreenId) : "zen";
+}
+
+/** Dev-only screen switcher overlay. Toggle by appending `?dev=1` to the URL. */
+export function isDevModeUI(): boolean {
+  const u = new URL(window.location.href);
+  return u.searchParams.get("dev") === "1";
 }
 
 export function readTheme(): ThemeId {

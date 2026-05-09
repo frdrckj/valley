@@ -13,6 +13,7 @@ import {
   SCREENS,
   readScreen,
   writeQuery,
+  isDevModeUI,
   type ScreenId,
 } from "@/lib/screen";
 import { useLayout, type Side } from "@/lib/layout";
@@ -31,6 +32,8 @@ export default function App() {
   const [valleyMd, setValleyMd] = useState<string | null>(null);
   const [omnibarOpen, setOmnibarOpen] = useState(false);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
+  const [explorerOpen, setExplorerOpen] = useState(false);
+  const devUI = isDevModeUI();
 
   useEffect(() => {
     void hydrateSettings();
@@ -69,7 +72,7 @@ export default function App() {
     "ai.toggle": () => setAiPanelOpen((v) => !v),
     "ai.focus.composer": () => { /* TODO: focus the .vy-aipanel-composer input */ },
     "omnibar.open": () => setOmnibarOpen((v: boolean) => !v),
-    "explorer.toggle": () => { /* TODO: toggle showSidebar */ },
+    "explorer.toggle": () => setExplorerOpen((v) => !v),
     "settings.open": () => void invoke("open_settings_window"),
   });
 
@@ -90,11 +93,13 @@ export default function App() {
   }
 
   const tabsHidden = screen === "zen" && !tabsHover;
+  // Explorer + AI panel are both hidden by default — minimalist by design.
+  // ⌘B toggles explorer, ⌘I toggles AI panel.  The dev-only screen URL flags
+  // (?screen=full / ?screen=ai etc.) still force them visible for the design
+  // switcher, which itself only renders when ?dev=1.
   const showSidebar =
-    ["full", "splits", "ai", "ghost", "error"].includes(screen);
-  // AI panel is hidden by default. ⌘I toggles it open. The dev-only `?screen=ai`
-  // and `?screen=ghost` pills still force it visible for the design switcher.
-  const showAiPanel = aiPanelOpen || ["ai", "ghost"].includes(screen);
+    explorerOpen || ["full", "splits", "ai", "ghost", "error"].includes(screen);
+  const showAiPanel = aiPanelOpen || ["full", "ai", "ghost"].includes(screen);
   const aiPending = screen === "ai";
   const showOmnibar = screen === "omnibar";
   const isSettings = screen === "settings";
@@ -139,12 +144,14 @@ export default function App() {
 
       {(showOmnibar || omnibarOpen) && <Omnibar onClose={() => setOmnibarOpen(false)} />}
 
-      <ScreenSwitcher
-        screen={screen}
-        theme={settings.theme === "auto" ? "dark" : settings.theme}
-        onScreen={pickScreen}
-        onTheme={pickTheme}
-      />
+      {devUI && (
+        <ScreenSwitcher
+          screen={screen}
+          theme={settings.theme === "auto" ? "dark" : settings.theme}
+          onScreen={pickScreen}
+          onTheme={pickTheme}
+        />
+      )}
     </div>
   );
 }

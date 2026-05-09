@@ -10,7 +10,7 @@ import { attachOscHandlers } from "./osc-handlers";
 import "@xterm/xterm/css/xterm.css";
 
 export interface UseTerminalSession {
-  attach: (host: HTMLDivElement) => Promise<void>;
+  attach: (host: HTMLDivElement) => void;
   fit: () => void;
   cwd: string | null;
   getTail: () => string;
@@ -27,23 +27,13 @@ export function useTerminalSession(opts: {
   const oscDisposerRef = useRef<(() => void) | null>(null);
   const tailRef = useRef<string[]>([]);
 
-  async function attach(host: HTMLDivElement) {
-    // React 19 StrictMode mounts twice in dev. After the first cleanup we
-    // null the refs (see useEffect below), so this guard only fires when a
-    // live xterm is already attached to the same host — not when re-mounting.
+  function attach(host: HTMLDivElement) {
+    // Sync guard. React 19 StrictMode mounts → unmounts → mounts again in dev;
+    // the cleanup nulls refs so this guard only fires on the same-host re-call,
+    // never on the strict-mode second mount. Caller (Terminal.tsx) is
+    // responsible for awaiting font load before calling this.
     if (termRef.current) return;
     while (host.firstChild) host.removeChild(host.firstChild);
-
-    // xterm's canvas/WebGL renderer measures glyphs at construction time —
-    // if the @fontsource webfont hasn't loaded yet we get a system fallback
-    // baked in for the lifetime of the instance. Wait for the font first.
-    if (typeof document !== "undefined" && document.fonts) {
-      try {
-        await document.fonts.load('13px "Geist Mono Variable"');
-      } catch {
-        /* font not available — xterm falls back to ui-monospace */
-      }
-    }
 
     const term = new XTerm({
       // Family names with spaces must be quoted; canvas font parsing matches
