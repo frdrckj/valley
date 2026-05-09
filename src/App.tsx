@@ -51,9 +51,6 @@ export default function App() {
   const aiPending = screen === "ai";
   const showOmnibar = screen === "omnibar";
   const isSettings = screen === "settings";
-  const ghost = screen === "ghost" ? "ckout main" : null;
-  const error = screen === "error" ? "gti push" : null;
-  const vsplit = screen === "splits";
 
   const panes = composeBodyPanes({
     showSidebar,
@@ -88,12 +85,7 @@ export default function App() {
           <>
             {panes.left}
             <div className="vy-main">
-              <Terminal
-                ghost={ghost}
-                error={error}
-                vsplit={vsplit}
-                prompt={ghost ? "git che" : error ? "gti push" : "git status"}
-              />
+              <Terminal sessionId="default" />
             </div>
             {panes.right}
           </>
