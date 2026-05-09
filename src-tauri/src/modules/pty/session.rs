@@ -101,27 +101,57 @@ pub async fn pty_open(
 
 #[tauri::command]
 pub async fn pty_write(
-    _state: State<'_, PtyState>,
-    _id: String,
-    _data: String,
+    state: State<'_, PtyState>,
+    id: String,
+    data: String,
 ) -> Result<(), String> {
-    Err("not yet implemented".into())
+    let sessions = state.0.read();
+    let session = sessions
+        .get(&id)
+        .ok_or_else(|| format!("pty session not found: {id}"))?;
+    session
+        .writer
+        .lock()
+        .write_all(data.as_bytes())
+        .map_err(|e| format!("write: {e}"))?;
+    Ok(())
 }
 
 #[tauri::command]
 pub async fn pty_resize(
-    _state: State<'_, PtyState>,
-    _id: String,
-    _cols: u16,
-    _rows: u16,
+    state: State<'_, PtyState>,
+    id: String,
+    cols: u16,
+    rows: u16,
 ) -> Result<(), String> {
-    Err("not yet implemented".into())
+    let sessions = state.0.read();
+    let session = sessions
+        .get(&id)
+        .ok_or_else(|| format!("pty session not found: {id}"))?;
+    session
+        .master
+        .lock()
+        .resize(PtySize {
+            rows,
+            cols,
+            pixel_width: 0,
+            pixel_height: 0,
+        })
+        .map_err(|e| format!("resize: {e}"))?;
+    Ok(())
 }
 
 #[tauri::command]
 pub async fn pty_close(
-    _state: State<'_, PtyState>,
-    _id: String,
+    state: State<'_, PtyState>,
+    id: String,
 ) -> Result<(), String> {
-    Err("not yet implemented".into())
+    let mut sessions = state.0.write();
+    if let Some(session) = sessions.remove(&id) {
+        // Kill the child and drop the Session — that closes our writer and master
+        // references. The reader thread (spawned in pty_open) holds its own cloned
+        // reader; it will exit on the next read after the master fd closes.
+        let _ = session.child_killer.lock().kill();
+    }
+    Ok(())
 }

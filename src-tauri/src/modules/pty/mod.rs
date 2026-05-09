@@ -1,3 +1,4 @@
 pub mod session;
 
-pub use session::{PtyState, pty_open, pty_write, pty_resize, pty_close, PtyEvent};
+#[allow(unused_imports)]
+pub use session::{PtyEvent, PtyState, pty_close, pty_open, pty_resize, pty_write};
