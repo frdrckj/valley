@@ -10,6 +10,8 @@ export type Tab = {
   panes: Pane;
   /** Preview-tab url. Ignored for terminal tabs. */
   url?: string;
+  /** Set when the user manually renames the tab; suppresses cwd auto-labelling. */
+  userRenamed?: boolean;
 };
 
 interface TabsState {
@@ -26,6 +28,21 @@ interface TabsState {
 
 let counter = 0;
 const nextId = () => `t${++counter}-${Date.now().toString(36)}`;
+
+/**
+ * Derive a tab label from the active terminal's cwd. We use the last path
+ * segment so `/Users/me/Documents/works/valley` becomes `valley`. The
+ * home dir collapses to `~` for readability.
+ */
+function labelFromCwd(cwd: string): string {
+  if (!cwd) return "zsh";
+  const trimmed = cwd.replace(/\/+$/, "");
+  if (trimmed === "" || trimmed === "/") return "/";
+  // Match `/Users/<name>` exactly and collapse to `~`.
+  if (/^\/Users\/[^/]+$/.test(trimmed)) return "~";
+  const last = trimmed.split("/").pop();
+  return last && last.length > 0 ? last : "/";
+}
 
 export const useTabs = create<TabsState>((set, get) => ({
   tabs: [],
@@ -53,7 +70,11 @@ export const useTabs = create<TabsState>((set, get) => ({
     if (get().tabs.some((t) => t.id === id)) set({ activeId: id });
   },
   rename(id, label) {
-    set({ tabs: get().tabs.map((t) => (t.id === id ? { ...t, label } : t)) });
+    set({
+      tabs: get().tabs.map((t) =>
+        t.id === id ? { ...t, label, userRenamed: true } : t,
+      ),
+    });
   },
   setPanes(id, panes) {
     set({ tabs: get().tabs.map((t) => (t.id === id ? { ...t, panes } : t)) });
@@ -61,7 +82,15 @@ export const useTabs = create<TabsState>((set, get) => ({
   setCwd(id, cwd) {
     const t = get().tabs.find((t) => t.id === id);
     if (!t || t.cwd === cwd) return;
-    set({ tabs: get().tabs.map((t) => (t.id === id ? { ...t, cwd } : t)) });
+    // Auto-update the label from cwd unless the user explicitly renamed it.
+    // Preview tabs handle their own labelling (via the hostname).
+    const label =
+      t.kind === "terminal" && !t.userRenamed ? labelFromCwd(cwd) : t.label;
+    set({
+      tabs: get().tabs.map((t) =>
+        t.id === id ? { ...t, cwd, label } : t,
+      ),
+    });
   },
   setUrl(id, url) {
     set({ tabs: get().tabs.map((t) => (t.id === id ? { ...t, url } : t)) });
