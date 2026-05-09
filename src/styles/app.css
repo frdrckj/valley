@@ -528,6 +528,65 @@
   font-size: 11px;
   color: var(--text-muted);
 }
+/* ----- Find in terminal ----- */
+.vy-search-bar {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-floating);
+  font-size: 12px;
+}
+.vy-search-input {
+  width: 200px;
+  height: 22px;
+  padding: 0 6px;
+  font: 400 12px var(--font-mono);
+  color: var(--text-primary);
+  background: var(--surface-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  outline: none;
+}
+.vy-search-input:focus { border-color: var(--accent-primary); }
+.vy-search-flag,
+.vy-search-nav,
+.vy-search-close {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: 500 11px var(--font-mono);
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.vy-search-flag.is-on {
+  color: var(--gb-dark-bg-0);
+  background: var(--accent-primary);
+}
+.vy-search-flag:hover,
+.vy-search-nav:hover,
+.vy-search-close:hover {
+  background: var(--hover-tint);
+  color: var(--text-strong);
+}
+.vy-search-hint {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 2px;
+}
+
 /* ----- Preview pane ----- */
 .vy-preview-pane {
   display: flex;

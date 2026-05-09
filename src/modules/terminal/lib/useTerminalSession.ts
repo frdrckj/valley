@@ -9,11 +9,25 @@ import { useTabs } from "@/modules/tabs/useTabs";
 
 import "@xterm/xterm/css/xterm.css";
 
+/**
+ * Registry mapping a terminal sessionId to its live SearchAddon. Each
+ * `useTerminalSession` registers on attach and clears on cleanup so
+ * external consumers (the global search bar, future AI-selection hooks)
+ * can drive search without prop-drilling through TerminalStack.
+ */
+const searchRegistry = new Map<string, SearchAddon>();
+
+export function getSearchAddonFor(sessionId: string): SearchAddon | null {
+  return searchRegistry.get(sessionId) ?? null;
+}
+
 export interface UseTerminalSession {
   attach: (host: HTMLDivElement) => void;
   fit: () => void;
   cwd: string | null;
   getTail: () => string;
+  /** Returns the SearchAddon for this terminal so a search bar can drive it. */
+  getSearch: () => SearchAddon | null;
 }
 
 export function useTerminalSession(opts: {
@@ -26,6 +40,7 @@ export function useTerminalSession(opts: {
   const bridgeRef = useRef<PtyBridge | null>(null);
   const oscDisposerRef = useRef<(() => void) | null>(null);
   const tailRef = useRef<string[]>([]);
+  const searchRef = useRef<SearchAddon | null>(null);
 
   function attach(host: HTMLDivElement) {
     // Sync guard. React 19 StrictMode mounts → unmounts → mounts again in dev;
@@ -54,7 +69,10 @@ export function useTerminalSession(opts: {
     });
     const fit = new FitAddon();
     term.loadAddon(fit);
-    term.loadAddon(new SearchAddon());
+    const search = new SearchAddon();
+    term.loadAddon(search);
+    searchRef.current = search;
+    searchRegistry.set(opts.sessionId, search);
     term.loadAddon(new WebLinksAddon());
     // We use xterm's default canvas renderer — WebglAddon was triggering
     // tearing/glitch artifacts on the Tauri WKWebView. Canvas is slower
@@ -102,6 +120,10 @@ export function useTerminalSession(opts: {
     return tailRef.current.join("\n");
   }
 
+  function getSearch(): SearchAddon | null {
+    return searchRef.current;
+  }
+
   useEffect(() => {
     return () => {
       oscDisposerRef.current?.();
@@ -111,10 +133,12 @@ export function useTerminalSession(opts: {
       termRef.current?.dispose();
       termRef.current = null;
       fitRef.current = null;
+      searchRef.current = null;
+      searchRegistry.delete(opts.sessionId);
     };
-  }, []);
+  }, [opts.sessionId]);
 
-  return { attach, fit, cwd, getTail };
+  return { attach, fit, cwd, getTail, getSearch };
 }
 
 // Gruvbox Material Medium Dark — mirrors the user's alacritty theme

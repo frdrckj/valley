@@ -26,6 +26,7 @@ import {
   findActive,
   splitPane,
 } from "@/modules/terminal/lib/splits";
+import { SearchBar } from "@/modules/terminal/SearchBar";
 
 const WORKSPACE_ROOT = "/Users/frederickjerusha/Documents/works/terminal/valley";
 
@@ -53,6 +54,7 @@ export default function App() {
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [explorerOpen, setExplorerOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const devUI = isDevModeUI();
   // Track the active terminal's cwd via the useTabs store. The OSC 7
   // handler in useTerminalSession writes to `tab.cwd` whenever the shell
@@ -144,10 +146,7 @@ export default function App() {
       const target = s.tabs[idx];
       if (target) s.activate(target.id);
     },
-    "search.focus": () => {
-      // Phase 1.1 — terminal search overlay isn't built yet.
-      console.log("[valley] search.focus not implemented (Phase 1.1)");
-    },
+    "search.focus": () => setSearchOpen((v) => !v),
     "ai.toggle": () => setAiPanelOpen((v) => !v),
     "ai.askSelection": () => {
       // For now, treat this as "open the omnibar" — closest current behavior
@@ -200,6 +199,7 @@ export default function App() {
             {panes.left}
             <div className="vy-main" style={{ position: "relative" }}>
               <TerminalStack />
+              {searchOpen && <SearchBar onClose={() => setSearchOpen(false)} />}
             </div>
             {panes.right}
           </>
