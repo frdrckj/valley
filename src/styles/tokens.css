@@ -16,16 +16,19 @@
    1. CANONICAL GRUVBOX SCALES (raw tokens)
    ------------------------------------------------------------- */
 :root {
-  /* Dark scale (default) */
-  --gb-dark-bg-0: #1d2021;
+  /* Dark scale — Gruvbox Material Medium Dark, mirroring the user's
+     alacritty config. Note: bg-0 == bg-1 == #282828; alacritty has a
+     single bg color, so unifying surface + surface-base avoids the
+     two-tone seam between header / terminal / sidebar. */
+  --gb-dark-bg-0: #282828;
   --gb-dark-bg-1: #282828;
-  --gb-dark-bg-2: #3c3836;
-  --gb-dark-bg-3: #504945;
-  --gb-dark-bg-4: #665c54;
-  --gb-dark-fg-0: #fbf1c7;
-  --gb-dark-fg-1: #ebdbb2;
-  --gb-dark-fg-2: #d5c4a1;
-  --gb-dark-fg-mu: #a89984;
+  --gb-dark-bg-2: #32302f;
+  --gb-dark-bg-3: #3c3836;
+  --gb-dark-bg-4: #504945;
+  --gb-dark-fg-0: #ddc7a1;
+  --gb-dark-fg-1: #d4be98;
+  --gb-dark-fg-2: #c5b48a;
+  --gb-dark-fg-mu: #928374;
 
   /* Light scale (Gruvbox Light Hard inversion) */
   --gb-light-bg-0: #f9f5d7;
