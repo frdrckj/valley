@@ -118,14 +118,15 @@
   color: var(--text-muted);
 }
 
-/* ----- Terminal pane ----- */
+/* ----- Terminal pane -----
+   Padding lives on `.vy-xterm-host .xterm` so xterm's renderer owns the
+   inset. Adding it here too caused 24px/32px of dead space (#).         */
 .vy-term-pane {
   position: relative;
   flex: 1;
   min-height: 0;
   background: var(--surface-base);
   border-left: 2px solid var(--accent-primary);
-  padding: 12px 16px;
   overflow: hidden;
 }
 .vy-term-dim {
