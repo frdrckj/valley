@@ -20,6 +20,7 @@ import { hydrateSettings, useSettings, patchSettings } from "@/lib/settings";
 import { setLive } from "@/lib/workspace";
 import { native } from "@/lib/native";
 import { useGlobalShortcuts } from "@/modules/shortcuts/useGlobalShortcuts";
+import { ShortcutsDialog } from "@/modules/shortcuts/ShortcutsDialog";
 
 const WORKSPACE_ROOT = "/Users/frederickjerusha/Documents/works/terminal/valley";
 
@@ -31,6 +32,7 @@ export default function App() {
   const [omnibarOpen, setOmnibarOpen] = useState(false);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [explorerOpen, setExplorerOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const devUI = isDevModeUI();
   // Track the active terminal's cwd via the useTabs store. The OSC 7
   // handler in useTerminalSession writes to `tab.cwd` whenever the shell
@@ -70,25 +72,53 @@ export default function App() {
   }, [settings.theme]);
 
   useGlobalShortcuts({
+    "shortcuts.open": () => setShortcutsOpen((v) => !v),
+    "settings.open": () => void invoke("open_settings_window"),
     "tab.new": () => useTabs.getState().open({ kind: "terminal", label: "zsh" }),
+    "tab.newPreview": () => {
+      // Phase 3 — preview tabs land with the editor module. Show a marker
+      // for now so the binding doesn't feel dead.
+      console.log("[valley] tab.newPreview not implemented (Phase 3)");
+    },
+    "tab.newEditor": () => {
+      console.log("[valley] tab.newEditor not implemented (Phase 3)");
+    },
     "tab.close": () => {
       const id = useTabs.getState().activeId;
       if (id) useTabs.getState().close(id);
     },
+    "tab.next": () => {
+      const s = useTabs.getState();
+      if (s.tabs.length === 0 || s.activeId === null) return;
+      const i = s.tabs.findIndex((t) => t.id === s.activeId);
+      const next = s.tabs[(i + 1) % s.tabs.length];
+      if (next) s.activate(next.id);
+    },
+    "tab.prev": () => {
+      const s = useTabs.getState();
+      if (s.tabs.length === 0 || s.activeId === null) return;
+      const i = s.tabs.findIndex((t) => t.id === s.activeId);
+      const prev = s.tabs[(i - 1 + s.tabs.length) % s.tabs.length];
+      if (prev) s.activate(prev.id);
+    },
+    "tab.selectByIndex": (e) => {
+      const idx = Number.parseInt(e.key, 10) - 1;
+      const s = useTabs.getState();
+      const target = s.tabs[idx];
+      if (target) s.activate(target.id);
+    },
+    "search.focus": () => {
+      // Phase 1.1 — terminal search overlay isn't built yet.
+      console.log("[valley] search.focus not implemented (Phase 1.1)");
+    },
     "ai.toggle": () => setAiPanelOpen((v) => !v),
-    "ai.focus.composer": () => { /* TODO: focus the .vy-aipanel-composer input */ },
-    "omnibar.open": () => setOmnibarOpen((v: boolean) => !v),
-    "explorer.toggle": () => setExplorerOpen((v) => !v),
-    "settings.open": () => void invoke("open_settings_window"),
+    "ai.askSelection": () => {
+      // For now, treat this as "open the omnibar" — closest current behavior
+      // until we wire selection capture from xterm.
+      setOmnibarOpen((v) => !v);
+    },
+    "sidebar.toggle": () => setExplorerOpen((v) => !v),
   });
-
-  useEffect(() => {
-    const h = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && omnibarOpen) setOmnibarOpen(false);
-    };
-    window.addEventListener("keydown", h);
-    return () => window.removeEventListener("keydown", h);
-  }, [omnibarOpen]);
 
   function pickScreen(s: ScreenId) {
     setScreen(s);
@@ -120,7 +150,10 @@ export default function App() {
 
   return (
     <div className="vy-app">
-      <TitleBar onToggleSidebar={() => setExplorerOpen((v) => !v)} />
+      <TitleBar
+        onToggleSidebar={() => setExplorerOpen((v) => !v)}
+        onOpenShortcuts={() => setShortcutsOpen((v) => !v)}
+      />
 
       <div className="vy-body">
         {isSettings ? (
@@ -139,6 +172,11 @@ export default function App() {
       <StatusBar aiState={screen === "ai" ? "thinking" : "ready"} />
 
       {(showOmnibar || omnibarOpen) && <Omnibar onClose={() => setOmnibarOpen(false)} />}
+
+      <ShortcutsDialog
+        open={shortcutsOpen}
+        onClose={() => setShortcutsOpen(false)}
+      />
 
       {devUI && (
         <ScreenSwitcher

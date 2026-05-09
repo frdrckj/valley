@@ -5,9 +5,7 @@ import { useLayout, type Side } from "@/lib/layout";
 import { useSettings, patchSettings } from "@/lib/settings";
 import {
   SHORTCUTS,
-  GROUP_LABELS,
-  comboGlyphs,
-  type ShortcutGroup,
+  SHORTCUT_GROUPS,
 } from "@/modules/shortcuts/shortcuts";
 
 const CATEGORIES = [
@@ -115,26 +113,25 @@ function AppearancePanel() {
 }
 
 function KeymapPanel() {
-  const groups: ShortcutGroup[] = ["general", "tabs", "view", "ai"];
   return (
     <>
       <p className="set-blurb">
-        Quick reference for valley controls. All shortcuts work anywhere in the
-        app.
+        Quick reference for valley controls. Press ⌘K from anywhere to pop the
+        same list as a floating dialog.
       </p>
-      {groups.map((g) => {
+      {SHORTCUT_GROUPS.map((g) => {
         const items = SHORTCUTS.filter((s) => s.group === g);
         if (items.length === 0) return null;
         return (
-          <Section key={g} label={GROUP_LABELS[g]}>
+          <Section key={g} label={g.toUpperCase()}>
             {items.map((s) => (
               <div key={s.id} className="set-row">
                 <div className="set-row-text">
                   <div className="t">{s.label}</div>
                 </div>
                 <div className="kbd-pair">
-                  {comboGlyphs(s.combo).map((g, i) => (
-                    <Kbd key={i}>{g}</Kbd>
+                  {s.keys.map((k, i) => (
+                    <Kbd key={i}>{k}</Kbd>
                   ))}
                 </div>
               </div>

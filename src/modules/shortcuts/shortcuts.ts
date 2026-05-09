@@ -1,63 +1,146 @@
-export type ShortcutGroup = "general" | "tabs" | "view" | "ai";
+/**
+ * Single source of truth for keyboard shortcuts. Mirrors terax-ai's
+ * shortcuts module: each entry carries display tokens for the dialog AND
+ * a `match` predicate over the live KeyboardEvent so the dialog can
+ * never lie about a binding the runtime no longer matches.
+ */
 
-export interface ShortcutDef {
-  id: string;
-  combo: string;
+const IS_MAC =
+  typeof navigator !== "undefined" &&
+  /mac|iphone|ipad/i.test(navigator.userAgent);
+
+export type ShortcutId =
+  | "tab.new"
+  | "tab.newPreview"
+  | "tab.newEditor"
+  | "tab.close"
+  | "tab.next"
+  | "tab.prev"
+  | "tab.selectByIndex"
+  | "search.focus"
+  | "ai.toggle"
+  | "ai.askSelection"
+  | "shortcuts.open"
+  | "settings.open"
+  | "sidebar.toggle";
+
+export type ShortcutGroup = "General" | "Tabs" | "Search" | "AI" | "View";
+
+export type Shortcut = {
+  id: ShortcutId;
   label: string;
+  keys: string[];
   group: ShortcutGroup;
-  scope?: "global" | "terminal" | "ai";
-}
-
-export const SHORTCUTS: ShortcutDef[] = [
-  { id: "settings.open",     combo: "cmd+,", label: "Open settings",      group: "general" },
-  { id: "omnibar.open",      combo: "cmd+k", label: "Ask valley (omnibar)", group: "general" },
-
-  { id: "tab.new",           combo: "cmd+t", label: "New tab",            group: "tabs" },
-  { id: "tab.close",         combo: "cmd+w", label: "Close tab",          group: "tabs" },
-
-  { id: "explorer.toggle",   combo: "cmd+b", label: "Toggle file explorer", group: "view" },
-
-  { id: "ai.toggle",         combo: "cmd+i", label: "Toggle AI panel",    group: "ai" },
-  { id: "ai.focus.composer", combo: "cmd+l", label: "Focus AI composer",  group: "ai" },
-];
-
-export const GROUP_LABELS: Record<ShortcutGroup, string> = {
-  general: "GENERAL",
-  tabs: "TABS",
-  view: "VIEW",
-  ai: "AI",
+  match: (e: KeyboardEvent) => boolean;
 };
 
-/** Render a combo string ("cmd+shift+]") as kbd-cap glyphs. */
-export function comboGlyphs(combo: string): string[] {
-  return combo.split("+").map((p) => {
-    switch (p) {
-      case "cmd": return "⌘";
-      case "shift": return "⇧";
-      case "alt": return "⌥";
-      case "ctrl": return "⌃";
-      case "enter": return "↩";
-      case "esc": return "esc";
-      case "tab": return "⇥";
-      case "space": return "␣";
-      case "up": return "↑";
-      case "down": return "↓";
-      case "left": return "←";
-      case "right": return "→";
-      default: return p.toUpperCase();
-    }
-  });
-}
+// Platform-correct primary modifier. macOS uses ⌘ exclusively so every
+// `Ctrl+key` (Ctrl+W/B/F/E/I/L/K/P used by tmux/nvim/CodeMirror inside
+// the embedded terminal) passes straight through to the running shell.
+// Linux/Windows use Ctrl as the conventional app-shortcut modifier.
+const isMod = (e: KeyboardEvent) =>
+  IS_MAC ? e.metaKey && !e.ctrlKey : e.ctrlKey && !e.metaKey;
 
-export function matchCombo(e: KeyboardEvent, combo: string): boolean {
-  const parts = combo.toLowerCase().split("+");
-  const wantsCmd = parts.includes("cmd");
-  const wantsShift = parts.includes("shift");
-  const wantsAlt = parts.includes("alt");
-  const key = parts[parts.length - 1];
-  const meta = (e.metaKey || e.ctrlKey) === wantsCmd;
-  const shift = e.shiftKey === wantsShift;
-  const alt = e.altKey === wantsAlt;
-  const k = e.key.toLowerCase();
-  return meta && shift && alt && k === key;
-}
+export const SHORTCUTS: Shortcut[] = [
+  {
+    id: "shortcuts.open",
+    label: "Show keyboard shortcuts",
+    keys: ["⌘", "K"],
+    group: "General",
+    match: (e) => isMod(e) && e.key.toLowerCase() === "k",
+  },
+  {
+    id: "settings.open",
+    label: "Open settings",
+    keys: ["⌘", ","],
+    group: "General",
+    match: (e) => isMod(e) && e.key === ",",
+  },
+  {
+    id: "tab.new",
+    label: "New tab",
+    keys: ["⌘", "T"],
+    group: "Tabs",
+    match: (e) => isMod(e) && e.key.toLowerCase() === "t",
+  },
+  {
+    id: "tab.newPreview",
+    label: "New preview tab",
+    keys: ["⌘", "P"],
+    group: "Tabs",
+    match: (e) => isMod(e) && !e.shiftKey && e.key.toLowerCase() === "p",
+  },
+  {
+    id: "tab.newEditor",
+    label: "New editor tab",
+    keys: ["⌘", "E"],
+    group: "Tabs",
+    match: (e) => isMod(e) && !e.shiftKey && e.key.toLowerCase() === "e",
+  },
+  {
+    id: "tab.close",
+    label: "Close tab",
+    keys: ["⌘", "W"],
+    group: "Tabs",
+    match: (e) => isMod(e) && e.key.toLowerCase() === "w",
+  },
+  {
+    id: "tab.next",
+    label: "Next tab",
+    keys: ["⌘", "⇧", "]"],
+    group: "Tabs",
+    // Match by physical code so it works regardless of which character the
+    // Shift modifier produces on a given keyboard layout (e.g. "}" on US).
+    match: (e) => isMod(e) && e.shiftKey && e.code === "BracketRight",
+  },
+  {
+    id: "tab.prev",
+    label: "Previous tab",
+    keys: ["⌘", "⇧", "["],
+    group: "Tabs",
+    match: (e) => isMod(e) && e.shiftKey && e.code === "BracketLeft",
+  },
+  {
+    id: "tab.selectByIndex",
+    label: "Jump to tab 1–9",
+    keys: ["⌘", "1…9"],
+    group: "Tabs",
+    match: (e) => isMod(e) && /^[1-9]$/.test(e.key),
+  },
+  {
+    id: "search.focus",
+    label: "Find in terminal",
+    keys: ["⌘", "F"],
+    group: "Search",
+    match: (e) => isMod(e) && e.key.toLowerCase() === "f",
+  },
+  {
+    id: "ai.toggle",
+    label: "Toggle AI agent",
+    keys: ["⌘", "I"],
+    group: "AI",
+    match: (e) => isMod(e) && e.key.toLowerCase() === "i",
+  },
+  {
+    id: "ai.askSelection",
+    label: "Ask AI about selection",
+    keys: ["⌘", "L"],
+    group: "AI",
+    match: (e) => isMod(e) && e.key.toLowerCase() === "l",
+  },
+  {
+    id: "sidebar.toggle",
+    label: "Toggle file explorer",
+    keys: ["⌘", "B"],
+    group: "View",
+    match: (e) => isMod(e) && e.key.toLowerCase() === "b",
+  },
+];
+
+export const SHORTCUT_GROUPS: ShortcutGroup[] = [
+  "General",
+  "Tabs",
+  "View",
+  "Search",
+  "AI",
+];

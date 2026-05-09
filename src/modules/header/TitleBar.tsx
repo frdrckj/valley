@@ -6,20 +6,19 @@ import { useTabs } from "@/modules/tabs/useTabs";
 
 interface TitleBarProps {
   onToggleSidebar: () => void;
+  onOpenShortcuts: () => void;
 }
 
 /**
- * macOS overlay header bar — modeled on terax-ai's Header.
+ * macOS overlay header bar — modeled on terax-ai's Header. Drag is wired
+ * through both terax's declarative path (`data-tauri-drag-region`) AND
+ * an imperative `getCurrentWindow().startDragging()` fallback so at
+ * least one path lands on every Tauri / macOS combination.
  *
- * Layout: [80px traffic-light gutter] · [sidebar toggle] · [divider] ·
- * [tabs] · [draggable spacer] · [settings button]
- *
- * Drag is wired imperatively via Tauri's `startDragging()` because the
- * declarative `data-tauri-drag-region` path is unreliable on this Tauri
- * 2.11 + macOS combination. `data-tauri-drag-region` is set anyway as a
- * belt-and-suspenders fallback. Interactive elements get explicit no-drag.
+ * Layout: [80 px traffic-light gutter] [sidebar toggle] [divider] [tabs]
+ * [draggable spacer] [shortcuts] [settings]
  */
-export function TitleBar({ onToggleSidebar }: TitleBarProps) {
+export function TitleBar({ onToggleSidebar, onOpenShortcuts }: TitleBarProps) {
   const tabs = useTabs((s) => s.tabs);
   const activeId = useTabs((s) => s.activeId);
   const { activate, close, open } = useTabs.getState();
@@ -34,7 +33,17 @@ export function TitleBar({ onToggleSidebar }: TitleBarProps) {
 
   function onMouseDown(e: React.MouseEvent) {
     if (e.button !== 0 || isInteractive(e.target)) return;
-    void getCurrentWindow().startDragging();
+    // Diagnostic: log every drag attempt so we can tell from the devtools
+    // console whether the handler is firing AND whether startDragging
+    // resolves. Open the webview's right-click → Inspect → Console to see.
+    console.log(
+      "[valley] header mousedown — calling startDragging()",
+      (e.target as HTMLElement)?.tagName,
+    );
+    void getCurrentWindow()
+      .startDragging()
+      .then(() => console.log("[valley] startDragging resolved"))
+      .catch((err) => console.error("[valley] startDragging failed:", err));
   }
 
   function onDoubleClick(e: React.MouseEvent) {
@@ -52,7 +61,7 @@ export function TitleBar({ onToggleSidebar }: TitleBarProps) {
       <button
         className="vy-header-btn"
         onClick={onToggleSidebar}
-        title="Toggle explorer (⌘B)"
+        title="Toggle file explorer (⌘B)"
         data-no-drag
         type="button"
       >
@@ -95,6 +104,15 @@ export function TitleBar({ onToggleSidebar }: TitleBarProps) {
 
       <div className="vy-header-spacer" data-tauri-drag-region />
 
+      <button
+        className="vy-header-btn"
+        onClick={onOpenShortcuts}
+        title="Keyboard shortcuts (⌘K)"
+        data-no-drag
+        type="button"
+      >
+        <Icon name="keyboard" size={16} />
+      </button>
       <button
         className="vy-header-btn"
         onClick={() => void invoke("open_settings_window")}
