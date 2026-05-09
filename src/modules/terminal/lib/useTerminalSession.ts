@@ -35,15 +35,16 @@ export function useTerminalSession(opts: {
     while (host.firstChild) host.removeChild(host.firstChild);
 
     const term = new XTerm({
-      // MesloLGS Nerd Font Mono is the font p10k recommends users install,
-      // and the only one in this stack with Powerline / Nerd Font icons.
-      // Geist Mono Variable (bundled via @fontsource) is the design-system
-      // font — it lacks Nerd Font glyphs but has the right aesthetic, so
-      // we fall back to it when the user's system doesn't have MesloLGS.
+      // Exact match to terax-ai. Geist Mono is intentionally NOT in this
+      // stack: browsers fall back per-glyph, and dropping a bundled font
+      // *before* MesloLGS made the regular ASCII characters render in
+      // Geist Mono while only the Nerd Font icons came from MesloLGS.
+      // Keeping the terminal pure to MesloLGS → JetBrains → SF Mono
+      // matches what terax-ai users see.
       fontFamily:
-        '"MesloLGS Nerd Font Mono", "Geist Mono Variable", "JetBrains Mono", SFMono-Regular, Menlo, monospace',
-      fontSize: 14,
-      lineHeight: 1.1,
+        '"MesloLGS Nerd Font Mono", "JetBrains Mono", SFMono-Regular, Menlo, monospace',
+      fontSize: 17,
+      lineHeight: 1.05,
       cursorBlink: true,
       cursorStyle: "block",
       allowProposedApi: true,

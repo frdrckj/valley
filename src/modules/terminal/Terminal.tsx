@@ -17,17 +17,14 @@ export function Terminal({ sessionId, cwd, focused = true }: TerminalProps) {
     if (!host) return;
 
     void (async () => {
-      // Wait for fonts so xterm's canvas-based renderer measures correctly.
-      // MesloLGS Nerd Font Mono is system-installed (p10k recommends it);
-      // Geist Mono Variable is bundled via @fontsource.
+      // Wait for the terminal font (system-installed MesloLGS Nerd Font Mono)
+      // so xterm's canvas renderer measures correctly. If absent, xterm falls
+      // back to JetBrains → SF Mono per the family stack.
       if (typeof document !== "undefined" && document.fonts) {
         try {
-          await Promise.all([
-            document.fonts.load('14px "MesloLGS Nerd Font Mono"'),
-            document.fonts.load('14px "Geist Mono Variable"'),
-          ]);
+          await document.fonts.load('17px "MesloLGS Nerd Font Mono"');
         } catch {
-          /* not available — xterm falls back to system mono */
+          /* not available — xterm falls back per family stack */
         }
       }
       if (cancelled) return;
