@@ -45,6 +45,10 @@ export async function patchSettings(patch: Partial<Settings>) {
   listeners.forEach((l) => l());
 }
 
+export function getSettingsSnapshot(): Settings {
+  return cached;
+}
+
 export function useSettings(): Settings {
   return useSyncExternalStore(
     (l) => {
