@@ -51,11 +51,37 @@ pub async fn pty_open(
         .or_else(|| std::env::var("SHELL").ok())
         .unwrap_or_else(|| "/bin/zsh".to_string());
 
+    use crate::modules::pty::shell_init::{install_for, ShellKind};
+
+    let init = install_for(&resolved_shell)?;
     let mut cmd = CommandBuilder::new(&resolved_shell);
     if let Some(cwd) = cwd {
         cmd.cwd(cwd);
     }
-    cmd.arg("-l");
+
+    // Pass -l only for POSIX shells that accept it (bash/zsh/sh).
+    if matches!(init.shell_kind, ShellKind::Zsh | ShellKind::Bash) {
+        cmd.arg("-l");
+    }
+
+    // Inject our init dir while preserving the user's original $ZDOTDIR / $BASH_ENV.
+    match init.shell_kind {
+        ShellKind::Zsh => {
+            if let Ok(prev) = std::env::var("ZDOTDIR") {
+                cmd.env("VALLEY_USER_ZDOTDIR", prev);
+            } else {
+                cmd.env("VALLEY_USER_ZDOTDIR", std::env::var("HOME").unwrap_or_default());
+            }
+            cmd.env("ZDOTDIR", init.dir.to_string_lossy().to_string());
+        }
+        ShellKind::Bash => {
+            if let Ok(prev) = std::env::var("BASH_ENV") {
+                cmd.env("VALLEY_USER_BASH_ENV", prev);
+            }
+            cmd.env("BASH_ENV", init.dir.join("valley.bashrc").to_string_lossy().to_string());
+        }
+        ShellKind::Other => {}
+    }
 
     let mut child = pair.slave.spawn_command(cmd).map_err(|e| format!("spawn shell: {e}"))?;
     let writer = pair.master.take_writer().map_err(|e| format!("take_writer: {e}"))?;

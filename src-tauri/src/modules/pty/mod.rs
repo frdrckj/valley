@@ -1,3 +1,4 @@
+mod shell_init;
 pub mod session;
 
 #[allow(unused_imports)]
