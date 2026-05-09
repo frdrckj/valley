@@ -1,5 +1,32 @@
 mod modules;
 
+use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
+
+#[tauri::command]
+async fn open_settings_window(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(w) = app.get_webview_window("settings") {
+        let _ = w.set_focus();
+        return Ok(());
+    }
+    let builder = WebviewWindowBuilder::new(
+        &app,
+        "settings",
+        WebviewUrl::App("settings.html".into()),
+    )
+    .title("Settings")
+    .inner_size(720.0, 520.0)
+    .min_inner_size(720.0, 520.0)
+    .resizable(false);
+
+    #[cfg(target_os = "macos")]
+    let builder = builder
+        .title_bar_style(tauri::TitleBarStyle::Overlay)
+        .hidden_title(true);
+
+    builder.build().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -34,6 +61,7 @@ pub fn run() {
             modules::secrets::secrets_set,
             modules::secrets::secrets_delete,
             modules::shell::shell_run_command,
+            open_settings_window,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

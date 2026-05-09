@@ -12,4 +12,12 @@ export default defineConfig({
   },
   server: { port: 5173, strictPort: true },
   clearScreen: false,
+  build: {
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, "index.html"),
+        settings: path.resolve(__dirname, "settings.html"),
+      },
+    },
+  },
 });
