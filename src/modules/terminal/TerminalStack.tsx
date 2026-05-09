@@ -1,7 +1,7 @@
 import { useTabs, type Tab } from "@/modules/tabs/useTabs";
 import { Terminal } from "./Terminal";
 import { PreviewPane } from "@/modules/preview/PreviewPane";
-import type { Pane } from "./lib/splits";
+import { focusPane, type Pane } from "./lib/splits";
 
 /**
  * Renders one absolutely-positioned body per tab. Inactive tabs use
@@ -31,18 +31,34 @@ function TabBody({ tab }: { tab: Tab }) {
   if (tab.kind === "preview") {
     return <PreviewPane tabId={tab.id} url={tab.url ?? "http://localhost:3000"} />;
   }
-  return <PaneTree pane={tab.panes} />;
+  return <PaneTree tabId={tab.id} pane={tab.panes} />;
 }
 
-function PaneTree({ pane }: { pane: Pane }) {
+function PaneTree({ tabId, pane }: { tabId: string; pane: Pane }) {
   if (pane.kind === "leaf") {
-    return <Terminal sessionId={pane.sessionId} focused={pane.active} />;
+    return (
+      <div
+        style={{ width: "100%", height: "100%" }}
+        onMouseDown={(e) => {
+          // Click anywhere on the pane → focus it. Stop propagation so the
+          // outer pointer-events-none guard doesn't swallow the focus when
+          // multiple inactive tabs co-exist with active splits.
+          e.stopPropagation();
+          if (!pane.active) {
+            const next = focusPane(useTabs.getState().tabs.find((t) => t.id === tabId)?.panes ?? pane, pane.sessionId);
+            useTabs.getState().setPanes(tabId, next);
+          }
+        }}
+      >
+        <Terminal sessionId={pane.sessionId} focused={pane.active} />
+      </div>
+    );
   }
   return (
     <div className={`vy-split ${pane.dir}`}>
-      <PaneTree pane={pane.a} />
+      <PaneTree tabId={tabId} pane={pane.a} />
       <div className={`vy-gutter ${pane.dir}`} />
-      <PaneTree pane={pane.b} />
+      <PaneTree tabId={tabId} pane={pane.b} />
     </div>
   );
 }

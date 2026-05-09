@@ -21,8 +21,28 @@ import { setLive } from "@/lib/workspace";
 import { native } from "@/lib/native";
 import { useGlobalShortcuts } from "@/modules/shortcuts/useGlobalShortcuts";
 import { ShortcutsDialog } from "@/modules/shortcuts/ShortcutsDialog";
+import {
+  closePane,
+  findActive,
+  splitPane,
+} from "@/modules/terminal/lib/splits";
 
 const WORKSPACE_ROOT = "/Users/frederickjerusha/Documents/works/terminal/valley";
+
+/**
+ * Split the active pane of the active tab. The new pane gets a fresh PTY
+ * session id so the next mount kicks off a new shell.
+ */
+function splitActivePane(dir: "v" | "h") {
+  const s = useTabs.getState();
+  if (!s.activeId) return;
+  const tab = s.tabs.find((t) => t.id === s.activeId);
+  if (!tab || tab.kind !== "terminal") return;
+  const active = findActive(tab.panes);
+  if (!active) return;
+  const newSessionId = `pty-${tab.id}-${Date.now().toString(36)}`;
+  s.setPanes(tab.id, splitPane(tab.panes, active.sessionId, dir, newSessionId));
+}
 
 export default function App() {
   const [screen, setScreen] = useState<ScreenId>(readScreen());
@@ -86,9 +106,24 @@ export default function App() {
       console.log("[valley] tab.newEditor not implemented (Phase 3)");
     },
     "tab.close": () => {
-      const id = useTabs.getState().activeId;
-      if (id) useTabs.getState().close(id);
+      // Closes the focused pane. If the tab had splits and only one pane
+      // remains, this collapses to that pane. The tab itself is closed
+      // only when the last pane is gone.
+      const s = useTabs.getState();
+      if (!s.activeId) return;
+      const tab = s.tabs.find((t) => t.id === s.activeId);
+      if (!tab) return;
+      const active = findActive(tab.panes);
+      if (!active) {
+        s.close(tab.id);
+        return;
+      }
+      const next = closePane(tab.panes, active.sessionId);
+      if (next === null) s.close(tab.id);
+      else s.setPanes(tab.id, next);
     },
+    "split.vertical": () => splitActivePane("v"),
+    "split.horizontal": () => splitActivePane("h"),
     "tab.next": () => {
       const s = useTabs.getState();
       if (s.tabs.length === 0 || s.activeId === null) return;

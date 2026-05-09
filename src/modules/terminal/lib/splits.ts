@@ -70,6 +70,11 @@ export function focusNeighbor(tree: Pane, direction: Direction): Pane {
   return setActiveSession(setAllInactive(tree), next.sessionId);
 }
 
+/** Set the named leaf as the active pane. Used by click-to-focus handlers. */
+export function focusPane(tree: Pane, sessionId: string): Pane {
+  return setActiveSession(setAllInactive(tree), sessionId);
+}
+
 function collectLeavesInOrder(p: Pane): Array<{ sessionId: string; active: boolean }> {
   if (p.kind === "leaf") return [{ sessionId: p.sessionId, active: p.active }];
   return [...collectLeavesInOrder(p.a), ...collectLeavesInOrder(p.b)];

@@ -17,6 +17,8 @@ export type ShortcutId =
   | "tab.next"
   | "tab.prev"
   | "tab.selectByIndex"
+  | "split.vertical"
+  | "split.horizontal"
   | "search.focus"
   | "ai.toggle"
   | "ai.askSelection"
@@ -24,7 +26,13 @@ export type ShortcutId =
   | "settings.open"
   | "sidebar.toggle";
 
-export type ShortcutGroup = "General" | "Tabs" | "Search" | "AI" | "View";
+export type ShortcutGroup =
+  | "General"
+  | "Tabs"
+  | "Splits"
+  | "Search"
+  | "AI"
+  | "View";
 
 export type Shortcut = {
   id: ShortcutId;
@@ -108,6 +116,20 @@ export const SHORTCUTS: Shortcut[] = [
     match: (e) => isMod(e) && /^[1-9]$/.test(e.key),
   },
   {
+    id: "split.vertical",
+    label: "Split right",
+    keys: ["⌘", "D"],
+    group: "Splits",
+    match: (e) => isMod(e) && !e.shiftKey && e.key.toLowerCase() === "d",
+  },
+  {
+    id: "split.horizontal",
+    label: "Split below",
+    keys: ["⌘", "⇧", "D"],
+    group: "Splits",
+    match: (e) => isMod(e) && e.shiftKey && e.key.toLowerCase() === "d",
+  },
+  {
     id: "search.focus",
     label: "Find in terminal",
     keys: ["⌘", "F"],
@@ -140,6 +162,7 @@ export const SHORTCUTS: Shortcut[] = [
 export const SHORTCUT_GROUPS: ShortcutGroup[] = [
   "General",
   "Tabs",
+  "Splits",
   "View",
   "Search",
   "AI",
