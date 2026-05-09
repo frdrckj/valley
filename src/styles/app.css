@@ -14,25 +14,25 @@
   position: relative;
 }
 
-/* ----- Title bar ----- */
+/* ----- Title bar -----
+   macOS overlay style: the OS draws real traffic lights at top-left.
+   We leave 76px of left padding so cwd never overlaps them, and mark
+   the whole bar as draggable. */
 .vy-titlebar {
   height: 36px;
   display: flex;
   align-items: center;
-  padding: 0 12px;
+  padding: 0 12px 0 76px;
   background: var(--surface);
   border-bottom: 1px solid var(--border-subtle);
   flex: none;
+  -webkit-app-region: drag;
+  app-region: drag;
 }
-.vy-traffic { display: flex; gap: 8px; }
-.vy-traffic .t {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
+.vy-titlebar :where(button, input, a, select, textarea) {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
 }
-.vy-traffic .r { background: #ff5f57; }
-.vy-traffic .y { background: #febc2e; }
-.vy-traffic .g { background: #28c840; }
 .vy-cwd {
   font-size: 11px;
   color: var(--text-muted);

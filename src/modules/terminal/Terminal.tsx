@@ -12,7 +12,7 @@ export function Terminal({ sessionId, cwd, focused = true }: TerminalProps) {
   const session = useTerminalSession({ sessionId, cwd });
 
   useEffect(() => {
-    if (ref.current) session.attach(ref.current);
+    if (ref.current) void session.attach(ref.current);
   }, [session]);
 
   useEffect(() => {

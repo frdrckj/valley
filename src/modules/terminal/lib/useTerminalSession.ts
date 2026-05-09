@@ -10,7 +10,7 @@ import { attachOscHandlers } from "./osc-handlers";
 import "@xterm/xterm/css/xterm.css";
 
 export interface UseTerminalSession {
-  attach: (host: HTMLDivElement) => void;
+  attach: (host: HTMLDivElement) => Promise<void>;
   fit: () => void;
   cwd: string | null;
   getTail: () => string;
@@ -27,14 +27,28 @@ export function useTerminalSession(opts: {
   const oscDisposerRef = useRef<(() => void) | null>(null);
   const tailRef = useRef<string[]>([]);
 
-  function attach(host: HTMLDivElement) {
+  async function attach(host: HTMLDivElement) {
     // React 19 StrictMode mounts twice in dev. After the first cleanup we
     // null the refs (see useEffect below), so this guard only fires when a
     // live xterm is already attached to the same host — not when re-mounting.
     if (termRef.current) return;
     while (host.firstChild) host.removeChild(host.firstChild);
+
+    // xterm's canvas/WebGL renderer measures glyphs at construction time —
+    // if the @fontsource webfont hasn't loaded yet we get a system fallback
+    // baked in for the lifetime of the instance. Wait for the font first.
+    if (typeof document !== "undefined" && document.fonts) {
+      try {
+        await document.fonts.load('13px "Geist Mono Variable"');
+      } catch {
+        /* font not available — xterm falls back to ui-monospace */
+      }
+    }
+
     const term = new XTerm({
-      fontFamily: 'Geist Mono Variable, Geist Mono, ui-monospace, monospace',
+      // Family names with spaces must be quoted; canvas font parsing matches
+      // CSS rules. Without the inner quotes this reads as four families.
+      fontFamily: '"Geist Mono Variable", "Geist Mono", ui-monospace, monospace',
       fontSize: 13,
       lineHeight: 1.0,
       cursorBlink: true,
