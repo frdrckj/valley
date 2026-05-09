@@ -3,7 +3,6 @@ import { Terminal as XTerm } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { SearchAddon } from "@xterm/addon-search";
 import { WebLinksAddon } from "@xterm/addon-web-links";
-import { WebglAddon } from "@xterm/addon-webgl";
 import { openPty, type PtyBridge } from "./pty-bridge";
 import { attachOscHandlers } from "./osc-handlers";
 
@@ -55,11 +54,9 @@ export function useTerminalSession(opts: {
     term.loadAddon(fit);
     term.loadAddon(new SearchAddon());
     term.loadAddon(new WebLinksAddon());
-    try {
-      term.loadAddon(new WebglAddon());
-    } catch {
-      /* WebGL unavailable on the GPU — fall back to canvas (xterm default). */
-    }
+    // We use xterm's default canvas renderer — WebglAddon was triggering
+    // tearing/glitch artifacts on the Tauri WKWebView. Canvas is slower
+    // but rock-solid; we'll revisit WebGL if it becomes a perf problem.
 
     term.open(host);
     fit.fit();
