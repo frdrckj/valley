@@ -1,0 +1,37 @@
+<!doctype html>
+<html data-theme="dark"><head><meta charset="utf-8"><link rel="stylesheet" href="_components.css"></head>
+<body>
+<div class="card" style="padding:14px 18px; gap:8px;">
+  <div style="font-size:10px; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-muted); margin-bottom:4px;">Sessions · AI panel</div>
+
+  <!-- active session -->
+  <div style="display:flex; flex-direction:column; gap:2px; padding:8px 10px; border-radius:6px; background:var(--gb-dark-bg-3); border-left:2px solid var(--accent-ai);">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="dot purple"></span>
+      <span style="font-size:12px; color:var(--text-strong); font-weight:500;">refactor parser tokens</span>
+      <span style="margin-left:auto; font-size:10px; color:var(--text-muted);">now</span>
+    </div>
+    <div style="font-size:11px; color:var(--text-secondary); padding-left:14px; opacity:0.9;">3 tool calls · pending approval</div>
+  </div>
+
+  <!-- recent -->
+  <div style="display:flex; flex-direction:column; gap:2px; padding:8px 10px; border-radius:6px;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="dot muted"></span>
+      <span style="font-size:12px; color:var(--text-primary);">explain pnpm-workspace.yaml</span>
+      <span style="margin-left:auto; font-size:10px; color:var(--text-muted);">12m</span>
+    </div>
+    <div style="font-size:11px; color:var(--text-muted); padding-left:14px;">resolved · 4 messages</div>
+  </div>
+
+  <!-- failed -->
+  <div style="display:flex; flex-direction:column; gap:2px; padding:8px 10px; border-radius:6px;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="dot red"></span>
+      <span style="font-size:12px; color:var(--text-primary);">debug rust-overlay build</span>
+      <span style="margin-left:auto; font-size:10px; color:var(--text-muted);">1h</span>
+    </div>
+    <div style="font-size:11px; color:var(--accent-danger); padding-left:14px; opacity:0.9;">cancelled · context too large</div>
+  </div>
+</div>
+</body></html>

@@ -1,0 +1,248 @@
+/* =============================================================
+   Valley Design System — Foundations
+   Gruvbox palette · Geist Mono Variable · monospace-grid only
+   ============================================================= */
+
+/* Geist Mono Variable — official Google Fonts source */
+@import url("https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&display=swap");
+
+/* -------------------------------------------------------------
+   1. CANONICAL GRUVBOX SCALES (raw tokens)
+   ------------------------------------------------------------- */
+:root {
+  /* Dark scale (default) */
+  --gb-dark-bg-0:  #1d2021;   /* hard bg                */
+  --gb-dark-bg-1:  #282828;   /* default bg             */
+  --gb-dark-bg-2:  #3c3836;
+  --gb-dark-bg-3:  #504945;
+  --gb-dark-bg-4:  #665c54;
+  --gb-dark-fg-0:  #fbf1c7;
+  --gb-dark-fg-1:  #ebdbb2;
+  --gb-dark-fg-2:  #d5c4a1;
+  --gb-dark-fg-mu: #a89984;
+
+  /* Light scale (Gruvbox Light Hard inversion) */
+  --gb-light-bg-0: #f9f5d7;   /* hard bg                */
+  --gb-light-bg-1: #fbf1c7;   /* default bg             */
+  --gb-light-bg-2: #ebdbb2;
+  --gb-light-bg-3: #d5c4a1;
+  --gb-light-bg-4: #bdae93;
+  --gb-light-fg-0: #1d2021;
+  --gb-light-fg-1: #282828;
+  --gb-light-fg-2: #3c3836;
+  --gb-light-fg-mu: #7c6f64;
+
+  /* Accents — dark-theme variants */
+  --gb-dark-red:    #fb4934;
+  --gb-dark-green:  #b8bb26;
+  --gb-dark-yellow: #fabd2f;
+  --gb-dark-blue:   #83a598;
+  --gb-dark-purple: #d3869b;
+  --gb-dark-aqua:   #8ec07c;
+  --gb-dark-orange: #fe8019;
+
+  /* Accents — light-theme variants (faded for contrast on cream) */
+  --gb-light-red:    #9d0006;
+  --gb-light-green:  #79740e;
+  --gb-light-yellow: #b57614;
+  --gb-light-blue:   #076678;
+  --gb-light-purple: #8f3f71;
+  --gb-light-aqua:   #427b58;
+  --gb-light-orange: #af3a03;
+}
+
+/* -------------------------------------------------------------
+   2. SEMANTIC TOKENS — DARK (default)
+   ------------------------------------------------------------- */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --surface:           var(--gb-dark-bg-1);
+  --surface-base:      var(--gb-dark-bg-0);
+  --surface-elevated:  var(--gb-dark-bg-2);
+  --surface-sunken:    var(--gb-dark-bg-0);
+  --surface-hover:     var(--gb-dark-bg-3);
+  --surface-active:    var(--gb-dark-bg-3);
+
+  /* Borders */
+  --border-subtle:     var(--gb-dark-bg-3);
+  --border-strong:     var(--gb-dark-bg-4);
+  --border-focus:      var(--gb-dark-yellow);
+
+  /* Text */
+  --text-primary:      var(--gb-dark-fg-1);
+  --text-strong:       var(--gb-dark-fg-0);
+  --text-secondary:    var(--gb-dark-fg-2);
+  --text-muted:        var(--gb-dark-fg-mu);
+  --text-disabled:     var(--gb-dark-bg-4);
+  --text-inverse:      var(--gb-dark-bg-0);
+
+  /* Accents (semantic) */
+  --accent-primary:    var(--gb-dark-yellow);
+  --accent-danger:     var(--gb-dark-red);
+  --accent-success:    var(--gb-dark-green);
+  --accent-info:       var(--gb-dark-blue);
+  --accent-warning:    var(--gb-dark-orange);
+  --accent-ai:         var(--gb-dark-purple);   /* sparkle / AI */
+  --accent-aqua:       var(--gb-dark-aqua);
+
+  /* Selection / hover wash — alpha tints over surface */
+  --hover-tint:        rgba(235, 219, 178, 0.06);
+  --focus-ring:        rgba(250, 189, 47, 0.45);
+
+  /* Elevation — only floating surfaces */
+  --shadow-floating:   0 2px 6px rgba(0,0,0,0.30),
+                       0 12px 32px rgba(0,0,0,0.45);
+}
+
+/* -------------------------------------------------------------
+   3. SEMANTIC TOKENS — LIGHT
+   ------------------------------------------------------------- */
+[data-theme="light"] {
+  color-scheme: light;
+
+  --surface:           var(--gb-light-bg-1);
+  --surface-base:      var(--gb-light-bg-0);
+  --surface-elevated:  var(--gb-light-bg-2);
+  --surface-sunken:    var(--gb-light-bg-0);
+  --surface-hover:     var(--gb-light-bg-2);
+  --surface-active:    var(--gb-light-bg-3);
+
+  --border-subtle:     var(--gb-light-bg-3);
+  --border-strong:     var(--gb-light-bg-4);
+  --border-focus:      var(--gb-light-yellow);
+
+  --text-primary:      var(--gb-light-fg-1);
+  --text-strong:       var(--gb-light-fg-0);
+  --text-secondary:    var(--gb-light-fg-2);
+  --text-muted:        var(--gb-light-fg-mu);
+  --text-disabled:     var(--gb-light-bg-4);
+  --text-inverse:      var(--gb-light-bg-0);
+
+  --accent-primary:    var(--gb-light-yellow);
+  --accent-danger:     var(--gb-light-red);
+  --accent-success:    var(--gb-light-green);
+  --accent-info:       var(--gb-light-blue);
+  --accent-warning:    var(--gb-light-orange);
+  --accent-ai:         var(--gb-light-purple);
+  --accent-aqua:       var(--gb-light-aqua);
+
+  --hover-tint:        rgba(60, 56, 54, 0.05);
+  --focus-ring:        rgba(181, 118, 20, 0.40);
+
+  --shadow-floating:   0 2px 6px rgba(60,56,54,0.10),
+                       0 12px 32px rgba(60,56,54,0.18);
+}
+
+/* -------------------------------------------------------------
+   4. TYPOGRAPHY
+   Single typeface: Geist Mono Variable. No proportional fonts.
+   ------------------------------------------------------------- */
+:root {
+  --font-mono: "Geist Mono", "JetBrains Mono", "SF Mono",
+               ui-monospace, Menlo, Consolas, monospace;
+  --font-sans: var(--font-mono);   /* deliberate alias — never proportional */
+
+  /* Type scale (px) */
+  --fs-xs:   11px;
+  --fs-sm:   12px;
+  --fs-base: 13px;   /* default UI */
+  --fs-md:   14px;
+  --fs-lg:   16px;
+  --fs-xl:   20px;
+  --fs-2xl:  24px;
+  --fs-3xl:  32px;
+
+  /* Line heights */
+  --lh-terminal: 1.0;   /* terminal grid     */
+  --lh-ui:       1.3;   /* labels, controls  */
+  --lh-prose:    1.5;   /* long-form text    */
+
+  /* Weights */
+  --fw-regular: 400;
+  --fw-medium:  500;
+  --fw-semibold:600;
+
+  /* Tracking */
+  --tracking-tight:  -0.01em;
+  --tracking-normal:  0em;
+  --tracking-loose:   0.02em;
+}
+
+/* -------------------------------------------------------------
+   5. SPACING / RADIUS / MOTION / ELEVATION
+   ------------------------------------------------------------- */
+:root {
+  /* Spacing — px */
+  --space-0:  0px;
+  --space-1:  2px;
+  --space-2:  4px;
+  --space-3:  6px;
+  --space-4:  8px;
+  --space-5:  12px;
+  --space-6:  16px;
+  --space-7:  20px;
+  --space-8:  24px;
+  --space-9:  32px;
+  --space-10: 48px;
+
+  /* Radius */
+  --radius-none: 0px;
+  --radius-sm:   4px;
+  --radius-md:   6px;   /* default UI */
+  --radius-lg:   8px;
+  --radius-xl:   12px;
+
+  /* Motion */
+  --dur-instant: 0ms;
+  --dur-fast:    120ms;
+  --dur-normal:  200ms;
+  --dur-slow:    320ms;
+  --ease-standard: cubic-bezier(.2,.8,.2,1);
+}
+
+/* -------------------------------------------------------------
+   6. BASE / RESET — applied when this stylesheet is loaded
+   ------------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--fs-base);
+  line-height: var(--lh-ui);
+  font-feature-settings: "ss01", "ss02", "cv01";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricPrecision;
+}
+
+/* Semantic prose helpers — drop on a wrapping element */
+.prose            { font-size: var(--fs-base); line-height: var(--lh-prose); color: var(--text-primary); }
+.prose h1,
+.t-3xl            { font-size: var(--fs-3xl); line-height: var(--lh-ui); font-weight: var(--fw-semibold); letter-spacing: var(--tracking-tight); color: var(--text-strong); }
+.prose h2,
+.t-2xl            { font-size: var(--fs-2xl); line-height: var(--lh-ui); font-weight: var(--fw-semibold); letter-spacing: var(--tracking-tight); color: var(--text-strong); }
+.prose h3,
+.t-xl             { font-size: var(--fs-xl);  line-height: var(--lh-ui); font-weight: var(--fw-medium);   color: var(--text-strong); }
+.t-lg             { font-size: var(--fs-lg);  line-height: var(--lh-ui); }
+.t-md             { font-size: var(--fs-md);  line-height: var(--lh-ui); }
+.t-base           { font-size: var(--fs-base);line-height: var(--lh-ui); }
+.t-sm             { font-size: var(--fs-sm);  line-height: var(--lh-ui); }
+.t-xs             { font-size: var(--fs-xs);  line-height: var(--lh-ui); letter-spacing: var(--tracking-loose); text-transform: uppercase; color: var(--text-muted); }
+
+.t-terminal       { font-size: var(--fs-base); line-height: var(--lh-terminal); }
+.t-muted          { color: var(--text-muted); }
+.t-strong         { color: var(--text-strong); font-weight: var(--fw-medium); }
+
+code, kbd, samp, pre { font-family: var(--font-mono); font-size: 1em; }
+
+/* Focus ring — universal */
+:where(button, a, input, select, textarea, [role="button"]):focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+}

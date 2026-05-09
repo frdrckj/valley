@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="Valley app icon — softly lit">
+  <defs>
+    <clipPath id="mask2"><rect x="0" y="0" width="1024" height="1024" rx="228" ry="228"></rect></clipPath>
+    <radialGradient id="bgGlow" cx="50%" cy="55%" r="62%">
+      <stop offset="0%" stop-color="#3c3836"></stop>
+      <stop offset="55%" stop-color="#282828"></stop>
+      <stop offset="100%" stop-color="#1d2021"></stop>
+    </radialGradient>
+    <radialGradient id="cursorGlow2" cx="50%" cy="50%" r="80%">
+      <stop offset="0%" stop-color="#fabd2f" stop-opacity="0.55"></stop>
+      <stop offset="100%" stop-color="#fabd2f" stop-opacity="0"></stop>
+    </radialGradient>
+    <filter id="softBlur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3"></feGaussianBlur>
+    </filter>
+  </defs>
+  <g clip-path="url(#mask2)">
+    <rect width="1024" height="1024" fill="url(#bgGlow)"></rect>
+
+    
+    <ellipse cx="618" cy="512" rx="280" ry="160" fill="url(#cursorGlow2)"></ellipse>
+
+    
+    <g opacity="0.05" fill="#fbf1c7">
+      <rect x="0" y="220" width="1024" height="1"></rect>
+      <rect x="0" y="320" width="1024" height="1"></rect>
+      <rect x="0" y="420" width="1024" height="1"></rect>
+      <rect x="0" y="520" width="1024" height="1"></rect>
+      <rect x="0" y="620" width="1024" height="1"></rect>
+      <rect x="0" y="720" width="1024" height="1"></rect>
+      <rect x="0" y="820" width="1024" height="1"></rect>
+    </g>
+
+    
+    <g filter="url(#softBlur)" opacity="0.55">
+      <path d="M 332 384 L 484 512 L 332 640" fill="none" stroke="#b8bb26" stroke-width="56" stroke-linecap="square" stroke-linejoin="miter"></path>
+    </g>
+    <path d="M 332 384 L 484 512 L 332 640" fill="none" stroke="#b8bb26" stroke-width="56" stroke-linecap="square" stroke-linejoin="miter"></path>
+
+    
+    <g filter="url(#softBlur)" opacity="0.7">
+      <rect x="544" y="468" width="148" height="88" fill="#fabd2f"></rect>
+    </g>
+    <rect x="544" y="468" width="148" height="88" fill="#fabd2f"></rect>
+    
+    <rect x="544" y="468" width="148" height="6" fill="#fbf1c7" opacity="0.55"></rect>
+  </g>
+</svg>

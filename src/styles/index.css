@@ -1,0 +1,46 @@
+@import "@fontsource-variable/geist-mono";
+@import "./tokens.css";
+@import "./reset.css";
+@import "./components.css";
+@import "./app.css";
+
+@import "tailwindcss";
+
+/* Tailwind v4 @theme — derived from src/styles/tokens.css.
+   We keep the canonical tokens in tokens.css (CSS custom properties).
+   Tailwind utilities reference them so authors can write
+   `bg-surface text-primary border-subtle` etc. in JSX. */
+@theme {
+  --color-surface: var(--surface);
+  --color-surface-base: var(--surface-base);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-active: var(--surface-active);
+
+  --color-border-subtle: var(--border-subtle);
+  --color-border-strong: var(--border-strong);
+  --color-border-focus: var(--border-focus);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-strong: var(--text-strong);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+
+  --color-accent-primary: var(--accent-primary);
+  --color-accent-danger: var(--accent-danger);
+  --color-accent-success: var(--accent-success);
+  --color-accent-info: var(--accent-info);
+  --color-accent-warning: var(--accent-warning);
+  --color-accent-ai: var(--accent-ai);
+  --color-accent-aqua: var(--accent-aqua);
+
+  --font-mono: var(--font-mono);
+  --font-sans: var(--font-mono);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+
+  --ease-standard: var(--ease-standard);
+}

@@ -1,0 +1,40 @@
+<!doctype html>
+<html data-theme="dark"><head><meta charset="utf-8"><link rel="stylesheet" href="_components.css"></head>
+<body>
+<div class="card" style="padding:18px 22px; gap:12px;">
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px 16px;">
+
+    <div class="input-wrap">
+      <input class="input" placeholder="Search files…">
+    </div>
+    <div class="input-wrap">
+      <span class="lead">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      </span>
+      <input class="input has-lead has-trail" placeholder="Search valley…">
+      <span class="trail"><span class="kbd">⌘</span><span class="kbd">K</span></span>
+    </div>
+
+    <div class="input-wrap">
+      <input class="input" value="~/code/valley" style="border-color:var(--accent-primary); box-shadow:0 0 0 2px var(--focus-ring);">
+    </div>
+    <div class="input-wrap">
+      <input class="input is-error" value="invalid-branch name">
+    </div>
+
+    <div class="input-wrap">
+      <input class="input" value="readonly path" disabled>
+    </div>
+    <div class="input-wrap">
+      <input class="input has-trail" value="git checkout main">
+      <span class="trail"><span class="kbd">↩</span></span>
+    </div>
+
+  </div>
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px 16px; font-size:10px; color:var(--text-muted);">
+    <span>rest · with placeholder</span><span>leading icon · trailing kbd</span>
+    <span>focus ring (accent.primary)</span><span>error (accent.danger)</span>
+    <span>disabled · 0.45</span><span>command-style</span>
+  </div>
+</div>
+</body></html>

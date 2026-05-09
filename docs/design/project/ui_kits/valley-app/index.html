@@ -1,0 +1,134 @@
+<!doctype html>
+<html data-theme="dark"><head>
+<meta charset="utf-8"><title>Valley · UI kit</title>
+<link rel="stylesheet" href="valley.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="components.jsx"></script>
+<script type="text/babel" src="screens.jsx"></script>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+const SCREENS = [
+  { id: "zen",      label: "zen" },
+  { id: "tabs",     label: "tabs hover" },
+  { id: "full",     label: "full layout" },
+  { id: "omnibar",  label: "⌘K omnibar" },
+  { id: "ai",       label: "ai panel" },
+  { id: "ghost",    label: "ghost suggestion" },
+  { id: "error",    label: "error banner" },
+  { id: "splits",   label: "splits" },
+  { id: "settings", label: "settings" },
+];
+
+function getScreen() {
+  const u = new URL(window.location.href);
+  return u.searchParams.get("screen") || "full";
+}
+function getTheme() {
+  const u = new URL(window.location.href);
+  return u.searchParams.get("theme") || "dark";
+}
+
+function ScreenSwitcher({ screen, theme, onScreen, onTheme }) {
+  return (
+    <div className="vy-screen-switcher" data-screen-label="switcher">
+      {SCREENS.map(s => (
+        <span key={s.id} className={"pill " + (screen === s.id ? "on" : "")} onClick={() => onScreen(s.id)}>{s.label}</span>
+      ))}
+      <span style={{ width: 1, alignSelf: "stretch", background: "var(--border-strong)", margin: "2px 4px" }} />
+      <span className={"pill " + (theme === "dark" ? "on" : "")} onClick={() => onTheme("dark")}>dark</span>
+      <span className={"pill " + (theme === "light" ? "on" : "")} onClick={() => onTheme("light")}>light</span>
+    </div>
+  );
+}
+
+const TABS_DEFAULT = [
+  { id: "a", label: "main · zsh", tone: "muted" },
+  { id: "b", label: "~/valley · pnpm dev", tone: "green" },
+  { id: "c", label: "tests · vitest", tone: "yellow" },
+  { id: "d", label: "build · failed", tone: "red" },
+];
+
+function App() {
+  const [screen, setScreen] = useState(getScreen());
+  const [theme,  setTheme]  = useState(getTheme());
+  const [active, setActive] = useState("b");
+  const [tabsHover, setTabsHover] = useState(false);
+
+  useEffect(() => { document.documentElement.dataset.theme = theme; }, [theme]);
+  function pickScreen(s) {
+    setScreen(s);
+    const u = new URL(window.location.href);
+    u.searchParams.set("screen", s);
+    history.replaceState(null, "", u.toString());
+  }
+  function pickTheme(t) {
+    setTheme(t);
+    const u = new URL(window.location.href);
+    u.searchParams.set("theme", t);
+    history.replaceState(null, "", u.toString());
+  }
+
+  // Per-screen layout choices
+  const showTabs   = screen !== "zen" || tabsHover;
+  const tabsHidden = screen === "zen" && !tabsHover;
+  const showSidebar  = ["full", "settings", "splits", "ai", "ghost", "error"].includes(screen) && screen !== "settings";
+  const showAiPanel  = ["full", "ai", "ghost"].includes(screen);
+  const aiPending    = screen === "ai";
+  const showOmnibar  = screen === "omnibar";
+  const isSettings   = screen === "settings";
+  const ghost        = screen === "ghost" ? "ckout main" : null;
+  const error        = screen === "error" ? "gti push" : null;
+  const vsplit       = screen === "splits";
+
+  return (
+    <div className="vy-app" data-screen-label={"01 " + screen}>
+      <TitleBar />
+
+      {!isSettings && (
+        <div onMouseEnter={() => setTabsHover(true)} onMouseLeave={() => setTabsHover(false)}>
+          <TabStrip
+            tabs={TABS_DEFAULT}
+            activeId={active}
+            onActivate={setActive}
+            hidden={tabsHidden}
+          />
+        </div>
+      )}
+
+      <div className="vy-body">
+        {isSettings ? (
+          <Settings />
+        ) : (
+          <>
+            {showSidebar && <FileTree activePath="src-tauri/main.rs" />}
+            <div className="vy-main">
+              <Terminal
+                ghost={ghost}
+                error={error}
+                vsplit={vsplit}
+                prompt={ghost ? "git che" : (error ? "gti push" : "git status")}
+              />
+            </div>
+            {showAiPanel && <AiPanel withToolCall={aiPending} />}
+          </>
+        )}
+      </div>
+
+      <StatusBar aiState={screen === "ai" ? "thinking" : "ready"} />
+
+      {showOmnibar && <Omnibar />}
+
+      <ScreenSwitcher screen={screen} theme={theme} onScreen={pickScreen} onTheme={pickTheme} />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body></html>

@@ -1,0 +1,245 @@
+/* =============================================================
+   Valley UI primitives
+   Mirrors docs/design/project/preview/_components.css.
+   Read tokens via CSS custom properties only.
+   ============================================================= */
+
+/* ---- Button ---- */
+.btn {
+  font: 500 13px var(--font-mono);
+  height: 28px;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background var(--dur-fast) var(--ease-standard),
+    border-color var(--dur-fast) var(--ease-standard),
+    color var(--dur-fast) var(--ease-standard);
+  white-space: nowrap;
+  user-select: none;
+}
+.btn[disabled],
+.btn.is-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.btn-primary {
+  background: var(--accent-primary);
+  color: var(--gb-dark-bg-0);
+}
+.btn-primary:hover { filter: brightness(1.08); }
+.btn-primary:active { filter: brightness(0.92); }
+
+.btn-secondary {
+  background: var(--surface-elevated);
+  border-color: var(--border-subtle);
+  color: var(--text-primary);
+}
+.btn-secondary:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+}
+.btn-secondary:active { background: var(--surface-active); }
+
+.btn-ghost { color: var(--text-secondary); }
+.btn-ghost:hover {
+  background: var(--hover-tint);
+  color: var(--text-strong);
+}
+.btn-ghost:active { background: var(--surface-elevated); }
+
+.btn-destructive {
+  background: transparent;
+  border-color: var(--accent-danger);
+  color: var(--accent-danger);
+}
+.btn-destructive:hover { background: rgba(251, 73, 52, 0.10); }
+.btn-destructive:active { background: rgba(251, 73, 52, 0.18); }
+.btn-destructive.is-solid {
+  background: var(--accent-danger);
+  color: var(--gb-dark-fg-0);
+  border-color: transparent;
+}
+
+/* ---- kbd ---- */
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 18px;
+  min-width: 18px;
+  padding: 0 5px;
+  font: 500 11px var(--font-mono);
+  color: var(--text-muted);
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+}
+
+/* ---- Input ---- */
+.input {
+  height: 28px;
+  padding: 0 10px;
+  font: 400 13px var(--font-mono);
+  color: var(--text-primary);
+  background: var(--surface-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  outline: none;
+  width: 100%;
+  transition: border-color var(--dur-fast) var(--ease-standard),
+    box-shadow var(--dur-fast) var(--ease-standard);
+}
+.input::placeholder { color: var(--text-muted); }
+.input:hover { border-color: var(--border-strong); }
+.input:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+.input.is-error { border-color: var(--accent-danger); }
+
+/* ---- Switch ---- */
+.switch {
+  width: 30px;
+  height: 18px;
+  border-radius: 9px;
+  position: relative;
+  background: var(--surface-hover);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-standard);
+  flex: none;
+}
+.switch .knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+  transition: left var(--dur-fast) var(--ease-standard),
+    background var(--dur-fast) var(--ease-standard);
+}
+.switch.is-on {
+  background: var(--accent-primary);
+  border-color: transparent;
+}
+.switch.is-on .knob {
+  left: 14px;
+  background: var(--gb-dark-bg-0);
+}
+
+/* ---- Select ---- */
+.select {
+  height: 28px;
+  padding: 0 28px 0 10px;
+  font: 400 13px var(--font-mono);
+  color: var(--text-primary);
+  background: var(--surface-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23a89984' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+
+/* ---- Tool-call card ---- */
+.toolcall {
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  font: 400 12px var(--font-mono);
+  overflow: hidden;
+}
+.toolcall .head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+.toolcall .head .name {
+  color: var(--text-strong);
+  font-weight: 500;
+}
+.toolcall .head .badge {
+  margin-left: auto;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--surface-hover);
+  color: var(--text-muted);
+}
+.toolcall .body {
+  padding: 8px 10px;
+  color: var(--text-secondary);
+}
+.toolcall .actions {
+  display: flex;
+  gap: 6px;
+  padding: 6px 10px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--surface);
+}
+
+/* ---- Tree row ---- */
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px 2px 10px;
+  font: 400 12px var(--font-mono);
+  color: var(--text-secondary);
+  border-radius: 3px;
+  cursor: pointer;
+  height: 22px;
+}
+.tree-row:hover {
+  background: var(--hover-tint);
+  color: var(--text-primary);
+}
+.tree-row.is-active {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+}
+.tree-row .twisty {
+  width: 10px;
+  opacity: 0.7;
+  flex: none;
+}
+
+/* ---- Status dot ---- */
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+}
+.dot.green {
+  background: var(--accent-success);
+  box-shadow: 0 0 6px var(--accent-success);
+}
+.dot.yellow {
+  background: var(--accent-primary);
+  box-shadow: 0 0 6px var(--accent-primary);
+}
+.dot.red {
+  background: var(--accent-danger);
+  box-shadow: 0 0 6px var(--accent-danger);
+}
+.dot.purple {
+  background: var(--accent-ai);
+  box-shadow: 0 0 6px var(--accent-ai);
+}
+.dot.muted { background: var(--text-muted); }
