@@ -12,7 +12,13 @@ pub fn run() {
                 .build(),
         )
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![])
+        .manage(modules::pty::PtyState::default())
+        .invoke_handler(tauri::generate_handler![
+            modules::pty::session::pty_open,
+            modules::pty::session::pty_write,
+            modules::pty::session::pty_resize,
+            modules::pty::session::pty_close,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
