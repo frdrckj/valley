@@ -18,6 +18,8 @@ import {
 } from "@/lib/screen";
 import { useLayout, type Side } from "@/lib/layout";
 
+const WORKSPACE_ROOT = "/Users/frederickjerusha/Documents/works/terminal/valley";
+
 export default function App() {
   const [screen, setScreen] = useState<ScreenId>(readScreen());
   const [theme, setTheme] = useState<ThemeId>(readTheme());
@@ -56,6 +58,7 @@ export default function App() {
     sidebarSide,
     aiSide,
     aiPending,
+    workspaceRoot: WORKSPACE_ROOT,
   });
 
   return (
@@ -111,13 +114,14 @@ function composeBodyPanes(opts: {
   sidebarSide: Side;
   aiSide: Side;
   aiPending: boolean;
+  workspaceRoot: string;
 }): { left: ReactNode[]; right: ReactNode[] } {
   const left: ReactNode[] = [];
   const right: ReactNode[] = [];
 
   if (opts.showSidebar) {
     const tree = (
-      <FileTree key="explorer" side={opts.sidebarSide} />
+      <FileTree key="explorer" root={opts.workspaceRoot} side={opts.sidebarSide} />
     );
     if (opts.sidebarSide === "left") left.push(tree);
     else right.push(tree);
