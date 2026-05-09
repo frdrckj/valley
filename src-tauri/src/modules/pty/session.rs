@@ -155,3 +155,54 @@ pub async fn pty_close(
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Duration;
+
+    /// Spawning a real shell and reading output is end-to-end. Keep the test
+    /// short and tolerant — CI spawn latency varies.
+    #[test]
+    fn spawn_echo_and_close() {
+        let pty_system = native_pty_system();
+        let pair = pty_system
+            .openpty(PtySize {
+                rows: 24,
+                cols: 80,
+                pixel_width: 0,
+                pixel_height: 0,
+            })
+            .unwrap();
+        let mut cmd = CommandBuilder::new("/bin/sh");
+        cmd.args(["-c", "echo hello && exit 0"]);
+        let mut child = pair.slave.spawn_command(cmd).unwrap();
+        let mut reader = pair.master.try_clone_reader().unwrap();
+
+        let mut output = Vec::new();
+        let mut buf = [0u8; 1024];
+        // Read until child exits or we time out.
+        let start = std::time::Instant::now();
+        loop {
+            if start.elapsed() > Duration::from_secs(3) {
+                panic!("timed out waiting for output");
+            }
+            match reader.read(&mut buf) {
+                Ok(0) => break,
+                Ok(n) => output.extend_from_slice(&buf[..n]),
+                Err(_) => break,
+            }
+            if child.try_wait().ok().flatten().is_some() {
+                // drain whatever remains
+                while let Ok(n) = reader.read(&mut buf) {
+                    if n == 0 { break; }
+                    output.extend_from_slice(&buf[..n]);
+                }
+                break;
+            }
+        }
+
+        let s = String::from_utf8_lossy(&output);
+        assert!(s.contains("hello"), "expected 'hello' in {s:?}");
+    }
+}
