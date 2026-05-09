@@ -13,6 +13,13 @@ export interface PtyOpenArgs {
   onEvent: Channel<PtyEvent>;
 }
 
+export interface DirEntry {
+  name: string;
+  path: string;
+  isDir: boolean;
+  isSymlink: boolean;
+}
+
 /**
  * Single seam between TS and Rust. All `invoke()` calls live here so types are
  * authoritative and we can swap to a mock for tests without touching modules.
@@ -31,6 +38,11 @@ export const native = {
     },
     close(id: string): Promise<void> {
       return tauriInvoke("pty_close", { id });
+    },
+  },
+  fs: {
+    readDir(path: string): Promise<DirEntry[]> {
+      return tauriInvoke("fs_read_dir", { path });
     },
   },
   Channel,
