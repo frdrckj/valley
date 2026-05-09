@@ -36,11 +36,15 @@ export function useTerminalSession(opts: {
     while (host.firstChild) host.removeChild(host.firstChild);
 
     const term = new XTerm({
-      // Family names with spaces must be quoted; canvas font parsing matches
-      // CSS rules. Without the inner quotes this reads as four families.
-      fontFamily: '"Geist Mono Variable", "Geist Mono", ui-monospace, monospace',
-      fontSize: 13,
-      lineHeight: 1.0,
+      // MesloLGS Nerd Font Mono is the font p10k recommends users install,
+      // and the only one in this stack with Powerline / Nerd Font icons.
+      // Geist Mono Variable (bundled via @fontsource) is the design-system
+      // font — it lacks Nerd Font glyphs but has the right aesthetic, so
+      // we fall back to it when the user's system doesn't have MesloLGS.
+      fontFamily:
+        '"MesloLGS Nerd Font Mono", "Geist Mono Variable", "JetBrains Mono", SFMono-Regular, Menlo, monospace',
+      fontSize: 14,
+      lineHeight: 1.1,
       cursorBlink: true,
       cursorStyle: "block",
       allowProposedApi: true,
