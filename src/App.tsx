@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { TitleBar } from "@/modules/header/TitleBar";
-import { TabStrip, type Tab } from "@/modules/tabs/TabStrip";
+import { TabStrip } from "@/modules/tabs/TabStrip";
+import { useTabs } from "@/modules/tabs/useTabs";
 import { FileTree } from "@/modules/explorer/FileTree";
 import { StatusBar } from "@/modules/statusbar/StatusBar";
 import { Terminal } from "@/modules/terminal/Terminal";
@@ -17,19 +18,16 @@ import {
 } from "@/lib/screen";
 import { useLayout, type Side } from "@/lib/layout";
 
-const TABS_DEFAULT: Tab[] = [
-  { id: "a", label: "main · zsh", tone: "muted" },
-  { id: "b", label: "~/valley · pnpm dev", tone: "green" },
-  { id: "c", label: "tests · vitest", tone: "yellow" },
-  { id: "d", label: "build · failed", tone: "red" },
-];
-
 export default function App() {
   const [screen, setScreen] = useState<ScreenId>(readScreen());
   const [theme, setTheme] = useState<ThemeId>(readTheme());
-  const [active, setActive] = useState<string>("b");
   const [tabsHover, setTabsHover] = useState(false);
   const { sidebar: sidebarSide, ai: aiSide } = useLayout();
+
+  useEffect(() => {
+    const { tabs, open } = useTabs.getState();
+    if (tabs.length === 0) open({ kind: "terminal", label: "zsh" });
+  }, []);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -69,12 +67,7 @@ export default function App() {
           onMouseEnter={() => setTabsHover(true)}
           onMouseLeave={() => setTabsHover(false)}
         >
-          <TabStrip
-            tabs={TABS_DEFAULT}
-            activeId={active}
-            onActivate={setActive}
-            hidden={tabsHidden}
-          />
+          <TabStrip hidden={tabsHidden} />
         </div>
       )}
 
