@@ -18,6 +18,8 @@ pub fn run() {
             modules::pty::session::pty_write,
             modules::pty::session::pty_resize,
             modules::pty::session::pty_close,
+            modules::fs::tree::fs_read_dir,
+            modules::fs::tree::list_subdirs,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
