@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Btn } from "@/components/Btn";
 import { Kbd } from "@/components/Kbd";
 import { useLayout, type Side } from "@/lib/layout";
+import { useSettings, patchSettings } from "@/lib/settings";
 
 const CATEGORIES = [
   "General",
@@ -16,10 +17,7 @@ const CATEGORIES = [
 
 export function Settings() {
   const [active, setActive] = useState<string>("Appearance");
-  const [vibrancy, setVibrancy] = useState(true);
-  const [ligatures, setLigatures] = useState(false);
-  const [autoApprove, setAutoApprove] = useState(true);
-  const [theme, setTheme] = useState<"dark" | "light" | "auto">("dark");
+  const settings = useSettings();
   const layout = useLayout();
 
   return (
@@ -64,20 +62,20 @@ export function Settings() {
           <Row title="Color theme" sub="Gruvbox is the only canonical palette.">
             <div className="seg">
               <span
-                className={`seg-i${theme === "dark" ? " on" : ""}`}
-                onClick={() => setTheme("dark")}
+                className={`seg-i${settings.theme === "dark" ? " on" : ""}`}
+                onClick={() => void patchSettings({ theme: "dark" })}
               >
                 dark
               </span>
               <span
-                className={`seg-i${theme === "light" ? " on" : ""}`}
-                onClick={() => setTheme("light")}
+                className={`seg-i${settings.theme === "light" ? " on" : ""}`}
+                onClick={() => void patchSettings({ theme: "light" })}
               >
                 light hard
               </span>
               <span
-                className={`seg-i${theme === "auto" ? " on" : ""}`}
-                onClick={() => setTheme("auto")}
+                className={`seg-i${settings.theme === "auto" ? " on" : ""}`}
+                onClick={() => void patchSettings({ theme: "auto" })}
               >
                 follow system
               </span>
@@ -87,10 +85,16 @@ export function Settings() {
             title="Window vibrancy"
             sub="macOS background blur · adds warmth, costs a little perf"
           >
-            <Switch on={vibrancy} onChange={() => setVibrancy((v) => !v)} />
+            <Switch
+              on={settings.vibrancy}
+              onChange={() => void patchSettings({ vibrancy: !settings.vibrancy })}
+            />
           </Row>
           <Row title="Font ligatures" sub="Geist Mono → ‒› ≠ ⇒ etc.">
-            <Switch on={ligatures} onChange={() => setLigatures((v) => !v)} />
+            <Switch
+              on={settings.ligatures}
+              onChange={() => void patchSettings({ ligatures: !settings.ligatures })}
+            />
           </Row>
           <Row title="Cursor" sub="Block · classic terminal">
             <select className="select" defaultValue="block">
@@ -107,8 +111,8 @@ export function Settings() {
             sub="file_read, list_dir, grep — no approval prompt"
           >
             <Switch
-              on={autoApprove}
-              onChange={() => setAutoApprove((v) => !v)}
+              on={settings.autoApproveReadTools}
+              onChange={() => void patchSettings({ autoApproveReadTools: !settings.autoApproveReadTools })}
             />
           </Row>
           <Row

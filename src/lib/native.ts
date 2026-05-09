@@ -45,5 +45,16 @@ export const native = {
       return tauriInvoke("fs_read_dir", { path });
     },
   },
+  secrets: {
+    get(key: string): Promise<string | null> {
+      return tauriInvoke<string | null>("secrets_get", { key });
+    },
+    set(key: string, value: string): Promise<void> {
+      return tauriInvoke("secrets_set", { key, value });
+    },
+    delete(key: string): Promise<void> {
+      return tauriInvoke("secrets_delete", { key });
+    },
+  },
   Channel,
 };

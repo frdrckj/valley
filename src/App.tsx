@@ -11,20 +11,23 @@ import { Settings } from "@/modules/settings/Settings";
 import {
   SCREENS,
   readScreen,
-  readTheme,
   writeQuery,
   type ScreenId,
-  type ThemeId,
 } from "@/lib/screen";
 import { useLayout, type Side } from "@/lib/layout";
+import { hydrateSettings, useSettings, patchSettings } from "@/lib/settings";
 
 const WORKSPACE_ROOT = "/Users/frederickjerusha/Documents/works/terminal/valley";
 
 export default function App() {
   const [screen, setScreen] = useState<ScreenId>(readScreen());
-  const [theme, setTheme] = useState<ThemeId>(readTheme());
   const [tabsHover, setTabsHover] = useState(false);
   const { sidebar: sidebarSide, ai: aiSide } = useLayout();
+  const settings = useSettings();
+
+  useEffect(() => {
+    void hydrateSettings();
+  }, []);
 
   useEffect(() => {
     const { tabs, open } = useTabs.getState();
@@ -32,16 +35,17 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-  }, [theme]);
+    // "auto" falls back to dark until media-query handling is added (TODO).
+    const resolved = settings.theme === "auto" ? "dark" : settings.theme;
+    document.documentElement.dataset.theme = resolved;
+  }, [settings.theme]);
 
   function pickScreen(s: ScreenId) {
     setScreen(s);
     writeQuery("screen", s);
   }
-  function pickTheme(t: ThemeId) {
-    setTheme(t);
-    writeQuery("theme", t);
+  function pickTheme(t: "dark" | "light") {
+    void patchSettings({ theme: t });
   }
 
   const tabsHidden = screen === "zen" && !tabsHover;
@@ -94,7 +98,7 @@ export default function App() {
 
       <ScreenSwitcher
         screen={screen}
-        theme={theme}
+        theme={settings.theme === "auto" ? "dark" : settings.theme}
         onScreen={pickScreen}
         onTheme={pickTheme}
       />
@@ -140,17 +144,12 @@ function composeBodyPanes(opts: {
 
 interface ScreenSwitcherProps {
   screen: ScreenId;
-  theme: ThemeId;
+  theme: "dark" | "light";
   onScreen: (s: ScreenId) => void;
-  onTheme: (t: ThemeId) => void;
+  onTheme: (t: "dark" | "light") => void;
 }
 
-function ScreenSwitcher({
-  screen,
-  theme,
-  onScreen,
-  onTheme,
-}: ScreenSwitcherProps) {
+function ScreenSwitcher({ screen, theme, onScreen, onTheme }: ScreenSwitcherProps) {
   return (
     <div className="vy-screen-switcher">
       {SCREENS.map((s) => (
