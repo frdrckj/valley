@@ -28,7 +28,11 @@ export function useTerminalSession(opts: {
   const tailRef = useRef<string[]>([]);
 
   function attach(host: HTMLDivElement) {
+    // React 19 StrictMode mounts twice in dev. After the first cleanup we
+    // null the refs (see useEffect below), so this guard only fires when a
+    // live xterm is already attached to the same host — not when re-mounting.
     if (termRef.current) return;
+    while (host.firstChild) host.removeChild(host.firstChild);
     const term = new XTerm({
       fontFamily: 'Geist Mono Variable, Geist Mono, ui-monospace, monospace',
       fontSize: 13,
@@ -85,8 +89,12 @@ export function useTerminalSession(opts: {
   useEffect(() => {
     return () => {
       oscDisposerRef.current?.();
+      oscDisposerRef.current = null;
       void bridgeRef.current?.dispose();
+      bridgeRef.current = null;
       termRef.current?.dispose();
+      termRef.current = null;
+      fitRef.current = null;
     };
   }, []);
 
