@@ -14,6 +14,9 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3",
+    "@ai-sdk/openai": "^3",
+    "@ai-sdk/react": "^3",
     "@fontsource-variable/geist-mono": "^5.2.7",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-log": "~2.8",
@@ -26,8 +29,10 @@
     "@xterm/addon-web-links": "^0.12",
     "@xterm/addon-webgl": "^0.19",
     "@xterm/xterm": "^6",
+    "ai": "^6",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "zod": "^4",
     "zustand": "^5"
   },
   "devDependencies": {
