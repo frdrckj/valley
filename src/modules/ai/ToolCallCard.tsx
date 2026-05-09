@@ -10,6 +10,8 @@ interface ToolCallCardProps {
   name: string;
   status: ToolStatus;
   diff?: boolean;
+  onApprove?: () => void;
+  onReject?: () => void;
 }
 
 const meta: Record<ToolKind, { tone: string; icon: IconName; verb: string }> = {
@@ -39,7 +41,7 @@ const statusBadge: Record<
   },
 };
 
-export function ToolCallCard({ kind, name, status, diff }: ToolCallCardProps) {
+export function ToolCallCard({ kind, name, status, diff, onApprove, onReject }: ToolCallCardProps) {
   const m = meta[kind];
   const sb = statusBadge[status];
   return (
@@ -75,7 +77,7 @@ export function ToolCallCard({ kind, name, status, diff }: ToolCallCardProps) {
       )}
       {status === "pending" && (
         <div className="actions">
-          <Btn variant="primary" style={{ height: 24, fontSize: 11 }}>
+          <Btn variant="primary" style={{ height: 24, fontSize: 11 }} onClick={onApprove}>
             Approve <Kbd dark>↩</Kbd>
           </Btn>
           <Btn variant="secondary" style={{ height: 24, fontSize: 11 }}>
@@ -84,6 +86,7 @@ export function ToolCallCard({ kind, name, status, diff }: ToolCallCardProps) {
           <Btn
             variant="ghost"
             style={{ height: 24, fontSize: 11, marginLeft: "auto" }}
+            onClick={onReject}
           >
             Reject <Kbd>esc</Kbd>
           </Btn>
