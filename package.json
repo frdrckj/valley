@@ -19,8 +19,14 @@
     "@tauri-apps/plugin-os": "~2.3",
     "@tauri-apps/plugin-process": "~2.3",
     "@tauri-apps/plugin-store": "~2.4",
+    "@xterm/addon-fit": "^0.11",
+    "@xterm/addon-search": "^0.16",
+    "@xterm/addon-web-links": "^0.12",
+    "@xterm/addon-webgl": "^0.19",
+    "@xterm/xterm": "^6",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "zustand": "^5"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.0",
