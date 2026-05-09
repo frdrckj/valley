@@ -12,7 +12,23 @@ export function useTree(root: string) {
   const [topLevel, setTopLevel] = useState<DirEntry[]>([]);
 
   useEffect(() => {
-    void native.fs.readDir(root).then(setTopLevel);
+    // Reset expanded-state cache whenever the root changes (e.g. user
+    // `cd`'s in the active terminal). Otherwise stale paths from the
+    // previous root linger and can never be cleaned up.
+    setByPath({});
+    setTopLevel([]);
+    let cancelled = false;
+    native.fs
+      .readDir(root)
+      .then((entries) => {
+        if (!cancelled) setTopLevel(entries);
+      })
+      .catch(() => {
+        if (!cancelled) setTopLevel([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [root]);
 
   const toggle = useCallback(async (path: string) => {

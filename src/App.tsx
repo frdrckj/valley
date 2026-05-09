@@ -32,6 +32,14 @@ export default function App() {
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [explorerOpen, setExplorerOpen] = useState(false);
   const devUI = isDevModeUI();
+  // Track the active terminal's cwd via the useTabs store. The OSC 7
+  // handler in useTerminalSession writes to `tab.cwd` whenever the shell
+  // emits a cwd update; we read it here so the file explorer's root
+  // follows the user's `cd` commands.
+  const activeCwd = useTabs(
+    (s) => s.tabs.find((t) => t.id === s.activeId)?.cwd ?? null,
+  );
+  const explorerRoot = activeCwd ?? WORKSPACE_ROOT;
 
   useEffect(() => {
     void hydrateSettings();
@@ -107,7 +115,7 @@ export default function App() {
     sidebarSide,
     aiSide,
     aiPending,
-    workspaceRoot: WORKSPACE_ROOT,
+    explorerRoot,
   });
 
   return (
@@ -156,14 +164,14 @@ function composeBodyPanes(opts: {
   sidebarSide: Side;
   aiSide: Side;
   aiPending: boolean;
-  workspaceRoot: string;
+  explorerRoot: string;
 }): { left: ReactNode[]; right: ReactNode[] } {
   const left: ReactNode[] = [];
   const right: ReactNode[] = [];
 
   if (opts.showSidebar) {
     const tree = (
-      <FileTree key="explorer" root={opts.workspaceRoot} side={opts.sidebarSide} />
+      <FileTree key="explorer" root={opts.explorerRoot} side={opts.sidebarSide} />
     );
     if (opts.sidebarSide === "left") left.push(tree);
     else right.push(tree);

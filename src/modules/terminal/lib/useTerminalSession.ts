@@ -5,6 +5,7 @@ import { SearchAddon } from "@xterm/addon-search";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { openPty, type PtyBridge } from "./pty-bridge";
 import { attachOscHandlers } from "./osc-handlers";
+import { useTabs } from "@/modules/tabs/useTabs";
 
 import "@xterm/xterm/css/xterm.css";
 
@@ -63,7 +64,16 @@ export function useTerminalSession(opts: {
     fit.fit();
 
     oscDisposerRef.current = attachOscHandlers(term, {
-      onCwd: setCwd,
+      onCwd: (next) => {
+        setCwd(next);
+        // Mirror cwd into the owning tab so the file explorer + other
+        // chrome can subscribe via the useTabs store. Sessions are named
+        // `pty-<tabId>`; strip the prefix to recover the tab id.
+        const tabId = opts.sessionId.startsWith("pty-")
+          ? opts.sessionId.slice(4)
+          : null;
+        if (tabId) useTabs.getState().setCwd(tabId, next);
+      },
     });
 
     void openPty({

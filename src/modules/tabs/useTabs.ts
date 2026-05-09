@@ -18,6 +18,7 @@ interface TabsState {
   activate(id: string): void;
   rename(id: string, label: string): void;
   setPanes(id: string, panes: Pane): void;
+  setCwd(id: string, cwd: string): void;
 }
 
 let counter = 0;
@@ -52,5 +53,10 @@ export const useTabs = create<TabsState>((set, get) => ({
   },
   setPanes(id, panes) {
     set({ tabs: get().tabs.map((t) => (t.id === id ? { ...t, panes } : t)) });
+  },
+  setCwd(id, cwd) {
+    const t = get().tabs.find((t) => t.id === id);
+    if (!t || t.cwd === cwd) return;
+    set({ tabs: get().tabs.map((t) => (t.id === id ? { ...t, cwd } : t)) });
   },
 }));
