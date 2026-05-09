@@ -27,6 +27,7 @@ export default function App() {
   const { sidebar: sidebarSide, ai: aiSide } = useLayout();
   const settings = useSettings();
   const [valleyMd, setValleyMd] = useState<string | null>(null);
+  const [omnibarOpen, setOmnibarOpen] = useState(false);
 
   useEffect(() => {
     void hydrateSettings();
@@ -55,6 +56,20 @@ export default function App() {
     const resolved = settings.theme === "auto" ? "dark" : settings.theme;
     document.documentElement.dataset.theme = resolved;
   }, [settings.theme]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setOmnibarOpen((v) => !v);
+      }
+      if (e.key === "Escape") {
+        setOmnibarOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   function pickScreen(s: ScreenId) {
     setScreen(s);
@@ -110,7 +125,7 @@ export default function App() {
 
       <StatusBar aiState={screen === "ai" ? "thinking" : "ready"} />
 
-      {showOmnibar && <Omnibar />}
+      {(showOmnibar || omnibarOpen) && <Omnibar onClose={() => setOmnibarOpen(false)} />}
 
       <ScreenSwitcher
         screen={screen}
