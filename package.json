@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "tauri": "tauri",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "check:size": "node scripts/check-bundle-size.mjs"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3",
