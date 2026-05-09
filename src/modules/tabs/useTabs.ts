@@ -1,19 +1,23 @@
 import { create } from "zustand";
+import type { Pane } from "@/modules/terminal/lib/splits";
+import { newLeaf } from "@/modules/terminal/lib/splits";
 
 export type Tab = {
   id: string;
   kind: "terminal";
   cwd?: string;
   label: string;
+  panes: Pane;
 };
 
 interface TabsState {
   tabs: Tab[];
   activeId: string | null;
-  open(tab: Omit<Tab, "id"> & Partial<Pick<Tab, "id">>): string;
+  open(tab: Omit<Tab, "id" | "panes"> & Partial<Pick<Tab, "id">>): string;
   close(id: string): void;
   activate(id: string): void;
   rename(id: string, label: string): void;
+  setPanes(id: string, panes: Pane): void;
 }
 
 let counter = 0;
@@ -24,7 +28,13 @@ export const useTabs = create<TabsState>((set, get) => ({
   activeId: null,
   open(input) {
     const id = input.id ?? nextId();
-    const tab: Tab = { id, kind: input.kind, cwd: input.cwd, label: input.label };
+    const tab: Tab = {
+      id,
+      kind: input.kind,
+      cwd: input.cwd,
+      label: input.label,
+      panes: newLeaf(`pty-${id}`),
+    };
     set((s) => ({ tabs: [...s.tabs, tab], activeId: id }));
     return id;
   },
@@ -39,5 +49,8 @@ export const useTabs = create<TabsState>((set, get) => ({
   },
   rename(id, label) {
     set({ tabs: get().tabs.map((t) => (t.id === id ? { ...t, label } : t)) });
+  },
+  setPanes(id, panes) {
+    set({ tabs: get().tabs.map((t) => (t.id === id ? { ...t, panes } : t)) });
   },
 }));

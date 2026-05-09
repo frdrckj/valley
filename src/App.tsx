@@ -4,7 +4,7 @@ import { TabStrip } from "@/modules/tabs/TabStrip";
 import { useTabs } from "@/modules/tabs/useTabs";
 import { FileTree } from "@/modules/explorer/FileTree";
 import { StatusBar } from "@/modules/statusbar/StatusBar";
-import { Terminal } from "@/modules/terminal/Terminal";
+import { TerminalStack } from "@/modules/terminal/TerminalStack";
 import { AiPanel } from "@/modules/ai/AiPanel";
 import { Omnibar } from "@/modules/ai/Omnibar";
 import { Settings } from "@/modules/settings/Settings";
@@ -77,8 +77,8 @@ export default function App() {
         ) : (
           <>
             {panes.left}
-            <div className="vy-main">
-              <Terminal sessionId="default" />
+            <div className="vy-main" style={{ position: "relative" }}>
+              <TerminalStack />
             </div>
             {panes.right}
           </>
