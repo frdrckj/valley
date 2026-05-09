@@ -117,26 +117,29 @@ export function useTerminalSession(opts: {
   return { attach, fit, cwd, getTail };
 }
 
+// Gruvbox Material Medium Dark — mirrors the user's alacritty theme
+// (~/.config/alacritty/themes/themes/gruvbox_material_medium_dark.toml).
+// Softer accents than canonical Gruvbox, warmer foreground.
 const gruvboxDarkXTerm = {
-  background: "#1d2021",
-  foreground: "#ebdbb2",
-  cursor: "#fabd2f",
-  cursorAccent: "#1d2021",
-  selectionBackground: "rgba(235,219,178,0.18)",
-  black: "#282828",
-  red: "#fb4934",
-  green: "#b8bb26",
-  yellow: "#fabd2f",
-  blue: "#83a598",
+  background: "#282828",
+  foreground: "#d4be98",
+  cursor: "#d8a657",
+  cursorAccent: "#282828",
+  selectionBackground: "rgba(212,190,152,0.18)",
+  black: "#3c3836",
+  red: "#ea6962",
+  green: "#a9b665",
+  yellow: "#d8a657",
+  blue: "#7daea3",
   magenta: "#d3869b",
-  cyan: "#8ec07c",
-  white: "#ebdbb2",
-  brightBlack: "#928374",
-  brightRed: "#fb4934",
-  brightGreen: "#b8bb26",
-  brightYellow: "#fabd2f",
-  brightBlue: "#83a598",
+  cyan: "#89b482",
+  white: "#d4be98",
+  brightBlack: "#3c3836",
+  brightRed: "#ea6962",
+  brightGreen: "#a9b665",
+  brightYellow: "#d8a657",
+  brightBlue: "#7daea3",
   brightMagenta: "#d3869b",
-  brightCyan: "#8ec07c",
-  brightWhite: "#fbf1c7",
+  brightCyan: "#89b482",
+  brightWhite: "#d4be98",
 };

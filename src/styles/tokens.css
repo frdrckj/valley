@@ -141,9 +141,13 @@
    Single typeface: Geist Mono Variable (loaded by main.tsx).
    ------------------------------------------------------------- */
 :root {
+  /* MesloLGS Nerd Font Mono is the terminal font — putting it first in the
+     chrome stack makes sidebar/header/settings render in the same metal,
+     so the whole window has a consistent feel. Geist Mono Variable and
+     Geist Mono follow as bundled fallbacks for users without MesloLGS. */
   --font-mono:
-    "Geist Mono Variable", "Geist Mono", "JetBrains Mono", "SF Mono",
-    ui-monospace, Menlo, Consolas, monospace;
+    "MesloLGS Nerd Font Mono", "Geist Mono Variable", "Geist Mono",
+    "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
   --font-sans: var(--font-mono);
 
   --fs-xs: 11px;
