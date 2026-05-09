@@ -33,6 +33,7 @@ pub fn run() {
             modules::secrets::secrets_get,
             modules::secrets::secrets_set,
             modules::secrets::secrets_delete,
+            modules::shell::shell_run_command,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

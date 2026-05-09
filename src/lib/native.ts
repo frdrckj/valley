@@ -44,6 +44,17 @@ export const native = {
     readDir(path: string): Promise<DirEntry[]> {
       return tauriInvoke("fs_read_dir", { path });
     },
+    readFile(path: string): Promise<string> {
+      return tauriInvoke("fs_read_file", { path });
+    },
+    writeFile(path: string, contents: string): Promise<void> {
+      return tauriInvoke("fs_write_file", { path, contents });
+    },
+  },
+  shell: {
+    run(cmd: string, cwd?: string): Promise<{ stdout: string; stderr: string; code: number | null }> {
+      return tauriInvoke("shell_run_command", { cmd, cwd });
+    },
   },
   secrets: {
     get(key: string): Promise<string | null> {
