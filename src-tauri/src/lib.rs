@@ -23,6 +23,10 @@ pub fn run() {
             modules::fs::file::fs_read_file,
             modules::fs::file::fs_write_file,
             modules::fs::file::fs_stat,
+            modules::fs::mutate::fs_create_file,
+            modules::fs::mutate::fs_create_dir,
+            modules::fs::mutate::fs_rename,
+            modules::fs::mutate::fs_delete,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
