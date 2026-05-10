@@ -75,6 +75,27 @@ export function focusPane(tree: Pane, sessionId: string): Pane {
   return setActiveSession(setAllInactive(tree), sessionId);
 }
 
+/**
+ * Update the ratio of the split node at `path`. Path is an array of
+ * "a"/"b" picks from the root, so `[]` is the root split itself, and
+ * `["a", "b"]` walks into the root's a-child and then that node's
+ * b-child. No-op if the resolved node isn't a split.
+ */
+export function updateSplitRatio(
+  tree: Pane,
+  path: Array<"a" | "b">,
+  ratio: number,
+): Pane {
+  const clamped = Math.max(0.05, Math.min(0.95, ratio));
+  if (path.length === 0) {
+    return tree.kind === "split" ? { ...tree, ratio: clamped } : tree;
+  }
+  if (tree.kind !== "split") return tree;
+  const [head, ...rest] = path;
+  if (head === "a") return { ...tree, a: updateSplitRatio(tree.a, rest, clamped) };
+  return { ...tree, b: updateSplitRatio(tree.b, rest, clamped) };
+}
+
 function collectLeavesInOrder(p: Pane): Array<{ sessionId: string; active: boolean }> {
   if (p.kind === "leaf") return [{ sessionId: p.sessionId, active: p.active }];
   return [...collectLeavesInOrder(p.a), ...collectLeavesInOrder(p.b)];

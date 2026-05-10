@@ -1,7 +1,7 @@
 import { useTabs, type Tab } from "@/modules/tabs/useTabs";
 import { Terminal } from "./Terminal";
 import { PreviewPane } from "@/modules/preview/PreviewPane";
-import { focusPane, type Pane } from "./lib/splits";
+import { focusPane, updateSplitRatio, type Pane } from "./lib/splits";
 
 /**
  * Renders one absolutely-positioned body per tab. Inactive tabs use
@@ -31,10 +31,17 @@ function TabBody({ tab }: { tab: Tab }) {
   if (tab.kind === "preview") {
     return <PreviewPane tabId={tab.id} url={tab.url ?? "http://localhost:3000"} />;
   }
-  return <PaneTree tabId={tab.id} pane={tab.panes} />;
+  return <PaneTree tabId={tab.id} pane={tab.panes} path={[]} />;
 }
 
-function PaneTree({ tabId, pane }: { tabId: string; pane: Pane }) {
+interface PaneTreeProps {
+  tabId: string;
+  pane: Pane;
+  /** Path of "a"/"b" picks from the root of `tab.panes`. Used by gutters. */
+  path: Array<"a" | "b">;
+}
+
+function PaneTree({ tabId, pane, path }: PaneTreeProps) {
   if (pane.kind === "leaf") {
     return (
       <div
@@ -63,11 +70,60 @@ function PaneTree({ tabId, pane }: { tabId: string; pane: Pane }) {
       </div>
     );
   }
+
+  // Split node — children are sized via `flex` from `pane.ratio`. Gutter
+  // sits between them and drives ratio changes via mouse-drag.
+  const ratio = pane.ratio;
   return (
     <div className={`vy-split ${pane.dir}`} style={{ width: "100%", height: "100%" }}>
-      <PaneTree tabId={tabId} pane={pane.a} />
-      <div className={`vy-gutter ${pane.dir}`} />
-      <PaneTree tabId={tabId} pane={pane.b} />
+      <div className="vy-split-child" style={{ flex: ratio }}>
+        <PaneTree tabId={tabId} pane={pane.a} path={[...path, "a"]} />
+      </div>
+      <Gutter tabId={tabId} splitPath={path} dir={pane.dir} />
+      <div className="vy-split-child" style={{ flex: 1 - ratio }}>
+        <PaneTree tabId={tabId} pane={pane.b} path={[...path, "b"]} />
+      </div>
     </div>
   );
+}
+
+interface GutterProps {
+  tabId: string;
+  splitPath: Array<"a" | "b">;
+  dir: "v" | "h";
+}
+
+function Gutter({ tabId, splitPath, dir }: GutterProps) {
+  function onMouseDown(e: React.MouseEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    const split = e.currentTarget.parentElement; // .vy-split wrapper
+    if (!split) return;
+    const rect = split.getBoundingClientRect();
+    const horizontal = dir === "v"; // dir "v" = vertical pipe = side-by-side
+
+    document.body.style.cursor = horizontal ? "col-resize" : "row-resize";
+    document.body.style.userSelect = "none";
+
+    function onMove(ev: MouseEvent) {
+      const ratio = horizontal
+        ? (ev.clientX - rect.left) / rect.width
+        : (ev.clientY - rect.top) / rect.height;
+      const tab = useTabs.getState().tabs.find((t) => t.id === tabId);
+      if (!tab) return;
+      useTabs
+        .getState()
+        .setPanes(tab.id, updateSplitRatio(tab.panes, splitPath, ratio));
+    }
+    function onUp() {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    }
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }
+
+  return <div className={`vy-gutter ${dir}`} onMouseDown={onMouseDown} />;
 }

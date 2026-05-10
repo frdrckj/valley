@@ -268,15 +268,40 @@
   display: flex;
   flex: 1;
   min-height: 0;
+  min-width: 0;
 }
 .vy-split.v { flex-direction: row; }
 .vy-split.h { flex-direction: column; }
-.vy-gutter {
-  background: var(--border-strong);
-  flex: none;
+.vy-split-child {
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
 }
-.vy-gutter.v { width: 1px; cursor: col-resize; }
-.vy-gutter.h { height: 1px; cursor: row-resize; }
+/* The gutter is 1 px visually but has a wider invisible hit area so it's
+   easy to grab without precision aiming. */
+.vy-gutter {
+  position: relative;
+  flex: none;
+  background: var(--border-strong);
+  user-select: none;
+}
+.vy-gutter::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+.vy-gutter.v {
+  width: 1px;
+  cursor: col-resize;
+}
+.vy-gutter.v::before { left: -3px; right: -3px; }
+.vy-gutter.h {
+  height: 1px;
+  cursor: row-resize;
+}
+.vy-gutter.h::before { top: -3px; bottom: -3px; }
+.vy-gutter:hover { background: var(--accent-primary); }
 
 /* ----- Error banner ----- */
 .vy-errbanner {
