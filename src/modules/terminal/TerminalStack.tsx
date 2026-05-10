@@ -1,6 +1,7 @@
 import { useTabs, type Tab } from "@/modules/tabs/useTabs";
 import { Terminal } from "./Terminal";
 import { PreviewPane } from "@/modules/preview/PreviewPane";
+import { FileViewer } from "@/modules/file/FileViewer";
 import { focusPane, updateSplitRatio, type Pane } from "./lib/splits";
 
 /**
@@ -30,6 +31,9 @@ export function TerminalStack() {
 function TabBody({ tab }: { tab: Tab }) {
   if (tab.kind === "preview") {
     return <PreviewPane tabId={tab.id} url={tab.url ?? "http://localhost:3000"} />;
+  }
+  if (tab.kind === "file") {
+    return <FileViewer path={tab.path ?? ""} />;
   }
   return <PaneTree tabId={tab.id} pane={tab.panes} path={[]} />;
 }

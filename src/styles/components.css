@@ -204,6 +204,16 @@
   border-radius: 3px;
   cursor: pointer;
   height: 22px;
+  min-height: 22px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.tree-row > span:last-child {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .tree-row:hover {
   background: var(--hover-tint);

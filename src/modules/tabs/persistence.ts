@@ -18,6 +18,7 @@ interface PersistedTab {
   label: string;
   cwd?: string;
   url?: string;
+  path?: string;
   userRenamed?: boolean;
 }
 
@@ -44,6 +45,7 @@ async function persistNow() {
     label: t.label,
     cwd: t.cwd,
     url: t.url,
+    path: t.path,
     userRenamed: t.userRenamed,
   }));
   try {
@@ -79,6 +81,7 @@ export async function hydrateTabs(): Promise<boolean> {
     label: p.label,
     cwd: p.cwd,
     url: p.url,
+    path: p.path,
     userRenamed: p.userRenamed,
     panes: newLeaf(`pty-${p.id}`),
   }));

@@ -4,12 +4,14 @@ import { newLeaf } from "@/modules/terminal/lib/splits";
 
 export type Tab = {
   id: string;
-  kind: "terminal" | "preview";
+  kind: "terminal" | "preview" | "file";
   cwd?: string;
   label: string;
   panes: Pane;
   /** Preview-tab url. Ignored for terminal tabs. */
   url?: string;
+  /** File-tab absolute path. */
+  path?: string;
   /** Set when the user manually renames the tab; suppresses cwd auto-labelling. */
   userRenamed?: boolean;
 };

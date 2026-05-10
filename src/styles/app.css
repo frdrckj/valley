@@ -176,27 +176,49 @@
   background: var(--surface-base);
 }
 
-/* ----- Sidebar / file tree ----- */
+/* ----- Sidebar / file tree -----
+   Width is driven by useLayout().sidebarWidth (inline style); CSS just
+   defines layout / scroll behaviour. The .vy-tree-resize child is a thin
+   draggable strip on the inner edge. */
 .vy-tree {
-  width: 220px;
+  position: relative;
   flex: none;
+  display: flex;
+  flex-direction: column;
   background: var(--surface-base);
   border-right: 1px solid var(--border-subtle);
-  padding: 8px 0;
-  overflow: auto;
+  overflow: hidden;
 }
 .vy-tree[data-side="right"] {
   border-right: 0;
   border-left: 1px solid var(--border-subtle);
 }
 .vy-tree-head {
+  flex: none;
   display: flex;
   align-items: center;
-  padding: 4px 12px 8px;
+  padding: 8px 12px 6px;
   font-size: 10px;
   letter-spacing: 0.06em;
   color: var(--text-muted);
 }
+.vy-tree-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding-bottom: 8px;
+}
+.vy-tree-resize {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  z-index: 5;
+  cursor: col-resize;
+}
+.vy-tree-resize.right-edge { right: -3px; }
+.vy-tree-resize.left-edge  { left: -3px; }
+.vy-tree-resize:hover { background: rgba(216, 166, 87, 0.20); }
 
 /* ----- Terminal pane -----
    Fills its container (whether the parent is flex or block) and lets
@@ -617,6 +639,60 @@
   display: inline-flex;
   align-items: center;
   margin-left: 2px;
+}
+
+/* ----- File viewer ----- */
+.vy-file-viewer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: var(--surface-base);
+}
+.vy-file-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface);
+  flex: none;
+  font: 400 12px var(--font-mono);
+}
+.vy-file-path {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vy-file-size {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+.vy-file-loading,
+.vy-file-error {
+  padding: 16px;
+  font: 400 12px var(--font-mono);
+  color: var(--text-muted);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.vy-file-error { color: var(--accent-danger); }
+.vy-file-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.vy-file-pre {
+  margin: 0;
+  padding: 12px 16px;
+  font: 400 13px var(--font-mono);
+  color: var(--text-primary);
+  white-space: pre;
+  tab-size: 2;
 }
 
 /* ----- Preview pane ----- */
