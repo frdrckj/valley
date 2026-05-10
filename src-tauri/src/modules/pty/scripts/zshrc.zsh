@@ -4,16 +4,28 @@
 [[ -n "$_VALLEY_ZSHRC_DONE" ]] && return
 typeset -gx _VALLEY_ZSHRC_DONE=1
 
+# Inside tmux, raw OSC sequences from the inner shell are consumed by
+# tmux for its own pane state and never reach valley's xterm — that's
+# why cwd/branch chrome stops updating after `cd`. Wrap each emit in
+# tmux's DCS passthrough envelope when $TMUX is set so the bytes are
+# forwarded verbatim. Requires `set -g allow-passthrough on` in the
+# user's tmux config (tmux >= 3.3); a no-op otherwise.
+if [[ -n "$TMUX" ]]; then
+    __valley_emit() { printf '\033Ptmux;\033%s\033\\' "$1"; }
+else
+    __valley_emit() { printf '%s' "$1"; }
+fi
+
 # OSC 7 — current working directory after every prompt.
 __valley_osc7() {
-    printf '\033]7;file://%s%s\a' "$HOST" "$PWD"
+    __valley_emit "$(printf '\033]7;file://%s%s\a' "$HOST" "$PWD")"
 }
 
 # OSC 133 — prompt markers (semantic shell integration).
-__valley_osc133_pre()  { printf '\033]133;A\a'; }
-__valley_osc133_post() { printf '\033]133;B\a'; }
-__valley_osc133_exec() { printf '\033]133;C\a'; }
-__valley_osc133_done() { printf '\033]133;D;%s\a' "$?"; }
+__valley_osc133_pre()  { __valley_emit $'\033]133;A\a'; }
+__valley_osc133_post() { __valley_emit $'\033]133;B\a'; }
+__valley_osc133_exec() { __valley_emit $'\033]133;C\a'; }
+__valley_osc133_done() { __valley_emit "$(printf '\033]133;D;%s\a' "$?")"; }
 
 # Pre-prompt: emit A and B, plus OSC 7. Layered via precmd hook.
 autoload -Uz add-zsh-hook 2>/dev/null || true
