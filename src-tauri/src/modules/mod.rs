@@ -4,3 +4,4 @@ pub mod pty;
 pub mod fs;
 pub mod secrets;
 pub mod shell;
+pub mod git;

@@ -7,7 +7,10 @@ import { FileTree } from "@/modules/explorer/FileTree";
 import { StatusBar } from "@/modules/statusbar/StatusBar";
 import { TerminalStack } from "@/modules/terminal/TerminalStack";
 import { AiPanel } from "@/modules/ai/AiPanel";
-import { Omnibar } from "@/modules/ai/Omnibar";
+import { Omnibar as AiOmnibar } from "@/modules/ai/Omnibar";
+import { Omnibar } from "@/modules/omnibar/Omnibar";
+import { useOmnibar } from "@/modules/omnibar/lib/useOmnibar";
+import { hydrateRecent, startRecentTracking } from "@/modules/omnibar/lib/recent";
 import { Settings } from "@/modules/settings/Settings";
 import {
   SCREENS,
@@ -31,6 +34,10 @@ import {
   type Direction,
 } from "@/modules/terminal/lib/splits";
 import { SearchBar } from "@/modules/terminal/SearchBar";
+import {
+  getBlockTrackerFor,
+  getTerminalFor,
+} from "@/modules/terminal/lib/useTerminalSession";
 
 const WORKSPACE_ROOT = "/Users/frederickjerusha/Documents/works/terminal/valley";
 
@@ -58,12 +65,37 @@ function focusNeighborInActiveTab(direction: Direction) {
   s.setPanes(tab.id, focusNeighbor(tab.panes, direction));
 }
 
+/** Jump the active terminal pane to the previous / next prompt block.
+ *  No-op if the active tab isn't a terminal or no blocks have been
+ *  recorded yet (fresh shell that hasn't emitted OSC 133 A). */
+function navigatePrompt(dir: "prev" | "next") {
+  const s = useTabs.getState();
+  if (!s.activeId) return;
+  const tab = s.tabs.find((t) => t.id === s.activeId);
+  if (!tab || tab.kind !== "terminal") return;
+  const active = findActive(tab.panes);
+  if (!active) return;
+  const tracker = getBlockTrackerFor(active.sessionId);
+  const term = getTerminalFor(active.sessionId);
+  if (!tracker || !term) return;
+  const viewportTop = term.buffer.active.viewportY;
+  const target =
+    dir === "prev"
+      ? tracker.prevBlockLine(viewportTop)
+      : tracker.nextBlockLine(viewportTop);
+  if (target === null) return;
+  // Marker.line is in the absolute buffer (includes scrollback). xterm's
+  // scrollToLine takes a viewport-relative offset, so subtract baseY.
+  const baseY = term.buffer.active.baseY;
+  term.scrollToLine(target - baseY);
+}
+
 export default function App() {
   const [screen, setScreen] = useState<ScreenId>(readScreen());
   const { sidebar: sidebarSide, ai: aiSide } = useLayout();
   const settings = useSettings();
   const [valleyMd, setValleyMd] = useState<string | null>(null);
-  const [omnibarOpen, setOmnibarOpen] = useState(false);
+  const omnibar = useOmnibar();
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [explorerOpen, setExplorerOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -84,11 +116,12 @@ export default function App() {
 
   useEffect(() => {
     const path = `${WORKSPACE_ROOT}/VALLEY.md`;
-    native.fs.readFile(path).then(setValleyMd).catch(() => setValleyMd(null));
+    native.fs.readText(path).then(setValleyMd).catch(() => setValleyMd(null));
   }, []);
 
   useEffect(() => {
-    let unsubscribe: (() => void) | null = null;
+    let unsubTabs: (() => void) | null = null;
+    let unsubRecent: (() => void) | null = null;
     void (async () => {
       const restored = await hydrateTabs();
       if (!restored) {
@@ -96,10 +129,14 @@ export default function App() {
       }
       // Subscribe AFTER hydrate so we don't immediately overwrite the
       // restored state with a half-loaded snapshot.
-      unsubscribe = startTabsPersistence();
+      unsubTabs = startTabsPersistence();
+      // Hydrate recent files then start tracking new file tabs.
+      await hydrateRecent();
+      unsubRecent = startRecentTracking();
     })();
     return () => {
-      unsubscribe?.();
+      unsubTabs?.();
+      unsubRecent?.();
     };
   }, []);
 
@@ -119,6 +156,7 @@ export default function App() {
     "shortcuts.open": () => setShortcutsOpen((v) => !v),
     "settings.open": () => void invoke("open_settings_window"),
     "tab.new": () => useTabs.getState().open({ kind: "terminal", label: "zsh" }),
+    "omnibar.open": () => omnibar.toggle(),
     "tab.newPreview": () => {
       useTabs.getState().open({
         kind: "preview",
@@ -137,6 +175,10 @@ export default function App() {
       if (!s.activeId) return;
       const tab = s.tabs.find((t) => t.id === s.activeId);
       if (!tab) return;
+      // File tab with unsaved edits: confirm before closing.
+      if (tab.kind === "file" && tab.dirty) {
+        if (!window.confirm(`Discard unsaved changes to ${tab.label}?`)) return;
+      }
       const active = findActive(tab.panes);
       if (!active) {
         s.close(tab.id);
@@ -173,11 +215,13 @@ export default function App() {
       if (target) s.activate(target.id);
     },
     "search.focus": () => setSearchOpen((v) => !v),
+    "prompt.prev": () => navigatePrompt("prev"),
+    "prompt.next": () => navigatePrompt("next"),
     "ai.toggle": () => setAiPanelOpen((v) => !v),
     "ai.askSelection": () => {
-      // For now, treat this as "open the omnibar" — closest current behavior
+      // For now, treat this as "open the AI omnibar" — closest current behavior
       // until we wire selection capture from xterm.
-      setOmnibarOpen((v) => !v);
+      setAiPanelOpen((v) => !v);
     },
     "sidebar.toggle": () => setExplorerOpen((v) => !v),
   });
@@ -200,7 +244,7 @@ export default function App() {
     explorerOpen || ["full", "splits", "ai", "ghost", "error"].includes(screen);
   const showAiPanel = aiPanelOpen || ["full", "ai", "ghost"].includes(screen);
   const aiPending = screen === "ai";
-  const showOmnibar = screen === "omnibar";
+  const showAiOmnibar = screen === "omnibar";
   const isSettings = screen === "settings";
 
   const panes = composeBodyPanes({
@@ -236,7 +280,9 @@ export default function App() {
 
       <StatusBar aiState={screen === "ai" ? "thinking" : "ready"} />
 
-      {(showOmnibar || omnibarOpen) && <Omnibar onClose={() => setOmnibarOpen(false)} />}
+      {showAiOmnibar && <AiOmnibar />}
+
+      <Omnibar />
 
       <ShortcutsDialog
         open={shortcutsOpen}

@@ -61,6 +61,9 @@ pub fn run() {
             modules::secrets::secrets_set,
             modules::secrets::secrets_delete,
             modules::shell::shell_run_command,
+            modules::git::git_repo_root,
+            modules::git::git_status,
+            modules::git::git_diff,
             open_settings_window,
         ])
         .run(tauri::generate_context!())

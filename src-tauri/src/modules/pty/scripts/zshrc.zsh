@@ -1,4 +1,8 @@
 # valley shell integration — sourced after user's ~/.zshrc.
+# Re-source guard: prevents an infinite loop if the user's .zshrc
+# accidentally sources $ZDOTDIR/.zshrc (which is us).
+[[ -n "$_VALLEY_ZSHRC_DONE" ]] && return
+typeset -gx _VALLEY_ZSHRC_DONE=1
 
 # OSC 7 — current working directory after every prompt.
 __valley_osc7() {
@@ -27,6 +31,10 @@ add-zsh-hook preexec __valley_preexec
 
 # If the user has a real ~/.zshrc, source it AFTER ours so they take precedence
 # (their hooks are appended). ZDOTDIR points here, but we want their config too.
-if [[ -n "$VALLEY_USER_ZDOTDIR" && -f "$VALLEY_USER_ZDOTDIR/.zshrc" ]]; then
+# The "$VALLEY_USER_ZDOTDIR" != "$ZDOTDIR" guard makes a stale parent
+# ZDOTDIR pointing at our temp dir a no-op instead of an infinite loop.
+if [[ -n "$VALLEY_USER_ZDOTDIR" \
+   && "$VALLEY_USER_ZDOTDIR" != "$ZDOTDIR" \
+   && -f "$VALLEY_USER_ZDOTDIR/.zshrc" ]]; then
     source "$VALLEY_USER_ZDOTDIR/.zshrc"
 fi

@@ -78,12 +78,22 @@ export function TitleBar({ onToggleSidebar, onOpenShortcuts }: TitleBarProps) {
             onClick={() => activate(t.id)}
             data-no-drag
           >
-            <Dot tone="muted" glow={false} />
-            <span>{t.label}</span>
+            <Dot tone={t.dirty ? "yellow" : "muted"} glow={!!t.dirty} />
+            <span>
+              {t.label}
+              {t.dirty ? " •" : ""}
+            </span>
             <span
               className="vy-header-tab-x"
               onClick={(e) => {
                 e.stopPropagation();
+                if (
+                  t.kind === "file" &&
+                  t.dirty &&
+                  !window.confirm(`Discard unsaved changes to ${t.label}?`)
+                ) {
+                  return;
+                }
                 close(t.id);
               }}
             >

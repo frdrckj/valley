@@ -20,6 +20,7 @@ interface PersistedTab {
   url?: string;
   path?: string;
   userRenamed?: boolean;
+  diffMode?: "working" | "staged";
 }
 
 let storePromise: Promise<Store> | null = null;
@@ -47,6 +48,7 @@ async function persistNow() {
     url: t.url,
     path: t.path,
     userRenamed: t.userRenamed,
+    diffMode: t.diffMode,
   }));
   try {
     const store = await getStore();
@@ -73,10 +75,12 @@ export async function hydrateTabs(): Promise<boolean> {
   } catch {
     return false;
   }
-  // Drop file tabs missing a `path`. Older persisted data didn't carry
+  // Drop file/diff tabs missing a `path`. Older persisted data didn't carry
   // it; restoring those tabs leads to ENOENT on first read.
   persisted = persisted.filter(
-    (p) => p.kind !== "file" || (typeof p.path === "string" && p.path.length > 0),
+    (p) =>
+      (p.kind !== "file" && p.kind !== "diff") ||
+      (typeof p.path === "string" && p.path.length > 0),
   );
   if (persisted.length === 0) return false;
 
@@ -88,6 +92,7 @@ export async function hydrateTabs(): Promise<boolean> {
     url: p.url,
     path: p.path,
     userRenamed: p.userRenamed,
+    diffMode: p.diffMode,
     panes: newLeaf(`pty-${p.id}`),
   }));
 

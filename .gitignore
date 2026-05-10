@@ -17,3 +17,9 @@ dist-ssr
 src-tauri/target
 src-tauri/Cargo.lock
 src-tauri/gen/
+
+# release artifacts — too heavy for git; ship via GitHub Releases instead
+releases/
+
+# runtime DBs / generated artifacts
+ruvector.db

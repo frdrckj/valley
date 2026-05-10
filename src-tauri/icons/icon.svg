@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="Valley app icon — ^~^ flat">
+  <defs>
+    <clipPath id="m"><rect width="1024" height="1024" rx="228"></rect></clipPath>
+  </defs>
+  <g clip-path="url(#m)">
+    <rect width="1024" height="1024" fill="#1d2021"></rect>
+
+    <path d="M 232 552 L 332 412 L 432 552" fill="none" stroke="#fabd2f" stroke-width="56" stroke-linecap="round" stroke-linejoin="round"></path>
+
+    <path d="M 452 532&#xA;             C 480 472, 520 472, 548 502&#xA;             C 576 532, 616 532, 644 472" fill="none" stroke="#fabd2f" stroke-width="56" stroke-linecap="round" stroke-linejoin="round"></path>
+
+    <path d="M 664 552 L 764 412 L 864 552" fill="none" stroke="#fabd2f" stroke-width="56" stroke-linecap="round" stroke-linejoin="round"></path>
+
+    <rect x="468" y="660" width="88" height="16" fill="#fabd2f" opacity="0.55"></rect>
+  </g>
+</svg>

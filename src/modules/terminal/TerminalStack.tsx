@@ -2,6 +2,7 @@ import { useTabs, type Tab } from "@/modules/tabs/useTabs";
 import { Terminal } from "./Terminal";
 import { PreviewPane } from "@/modules/preview/PreviewPane";
 import { FileViewer } from "@/modules/file/FileViewer";
+import { DiffView } from "@/modules/diff/DiffView";
 import { focusPane, updateSplitRatio, type Pane } from "./lib/splits";
 
 /**
@@ -21,21 +22,32 @@ export function TerminalStack() {
           className={t.id === activeId ? "" : "invisible pointer-events-none"}
           style={{ position: "absolute", inset: 0 }}
         >
-          <TabBody tab={t} />
+          <TabBody tab={t} isActive={t.id === activeId} />
         </div>
       ))}
     </>
   );
 }
 
-function TabBody({ tab }: { tab: Tab }) {
+function TabBody({ tab, isActive }: { tab: Tab; isActive: boolean }) {
   if (tab.kind === "preview") {
     return <PreviewPane tabId={tab.id} url={tab.url ?? "http://localhost:3000"} />;
   }
   if (tab.kind === "file") {
-    return <FileViewer path={tab.path ?? ""} />;
+    return <FileViewer tabId={tab.id} path={tab.path ?? ""} active={isActive} />;
   }
-  return <PaneTree tabId={tab.id} pane={tab.panes} path={[]} />;
+  if (tab.kind === "diff") {
+    return (
+      <DiffView
+        tabId={tab.id}
+        path={tab.path ?? ""}
+        mode={tab.diffMode ?? "working"}
+      />
+    );
+  }
+  return (
+    <PaneTree tabId={tab.id} pane={tab.panes} path={[]} tabActive={isActive} />
+  );
 }
 
 interface PaneTreeProps {
@@ -43,9 +55,12 @@ interface PaneTreeProps {
   pane: Pane;
   /** Path of "a"/"b" picks from the root of `tab.panes`. Used by gutters. */
   path: Array<"a" | "b">;
+  /** True when the owning tab is the active tab. Combines with `pane.active`
+   *  so the xterm only steals focus when its tab is in front. */
+  tabActive: boolean;
 }
 
-function PaneTree({ tabId, pane, path }: PaneTreeProps) {
+function PaneTree({ tabId, pane, path, tabActive }: PaneTreeProps) {
   if (pane.kind === "leaf") {
     return (
       <div
@@ -70,7 +85,11 @@ function PaneTree({ tabId, pane, path }: PaneTreeProps) {
           }
         }}
       >
-        <Terminal sessionId={pane.sessionId} focused={pane.active} />
+        <Terminal
+          sessionId={pane.sessionId}
+          focused={pane.active}
+          tabActive={tabActive}
+        />
       </div>
     );
   }
@@ -81,11 +100,11 @@ function PaneTree({ tabId, pane, path }: PaneTreeProps) {
   return (
     <div className={`vy-split ${pane.dir}`} style={{ width: "100%", height: "100%" }}>
       <div className="vy-split-child" style={{ flex: ratio }}>
-        <PaneTree tabId={tabId} pane={pane.a} path={[...path, "a"]} />
+        <PaneTree tabId={tabId} pane={pane.a} path={[...path, "a"]} tabActive={tabActive} />
       </div>
       <Gutter tabId={tabId} splitPath={path} dir={pane.dir} />
       <div className="vy-split-child" style={{ flex: 1 - ratio }}>
-        <PaneTree tabId={tabId} pane={pane.b} path={[...path, "b"]} />
+        <PaneTree tabId={tabId} pane={pane.b} path={[...path, "b"]} tabActive={tabActive} />
       </div>
     </div>
   );

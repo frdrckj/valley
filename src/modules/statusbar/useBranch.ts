@@ -27,7 +27,7 @@ export function useBranch(cwd: string | null): string | null {
       // Walk up at most 12 levels to find a `.git/HEAD`.
       for (let i = 0; i < 12; i++) {
         try {
-          const head = await native.fs.readFile(`${dir}/.git/HEAD`);
+          const head = await native.fs.readText(`${dir}/.git/HEAD`);
           if (cancelled) return;
           const m = head.match(/^ref:\s*refs\/heads\/(.+?)\s*$/);
           setBranch(m ? m[1] : head.trim().slice(0, 7));

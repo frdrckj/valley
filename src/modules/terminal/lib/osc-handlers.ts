@@ -3,7 +3,13 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 export interface OscEvents {
   /** Fired whenever the shell reports its cwd via OSC 7. */
   onCwd?: (cwd: string) => void;
-  /** Fired on OSC 133 D — exit code of the last command. */
+  /** Fired on OSC 133 A — prompt about to render. The block tracker
+   *  should register a marker at the current line. */
+  onPromptStart?: () => void;
+  /** Fired on OSC 133 C — command starts executing (between input
+   *  Enter and first output byte). Used to time how long a command runs. */
+  onCommandStart?: () => void;
+  /** Fired on OSC 133 D — exit code of the most-recent command. */
   onExitCode?: (code: number) => void;
 }
 
@@ -15,15 +21,19 @@ export interface OscEvents {
  */
 export function attachOscHandlers(term: XTerm, ev: OscEvents): () => void {
   const dispose7 = term.parser.registerOscHandler(7, (data) => {
-    // data is `file://<host><path>` — strip the prefix.
     const m = /^file:\/\/[^/]*(.*)$/.exec(data);
     if (m && m[1]) ev.onCwd?.(decodeURIComponent(m[1]));
     return true;
   });
 
   const dispose133 = term.parser.registerOscHandler(133, (data) => {
-    // A/B/C/D[;<exit>]
-    if (data.startsWith("D")) {
+    // A/B/C/D[;<exit>]. We only fire callbacks for the states we use —
+    // B (input start) is informational and ignored.
+    if (data.startsWith("A")) {
+      ev.onPromptStart?.();
+    } else if (data.startsWith("C")) {
+      ev.onCommandStart?.();
+    } else if (data.startsWith("D")) {
       const parts = data.split(";");
       const code = parts[1] ? Number.parseInt(parts[1], 10) : 0;
       if (Number.isFinite(code)) ev.onExitCode?.(code);

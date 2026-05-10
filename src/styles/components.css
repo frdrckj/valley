@@ -197,14 +197,14 @@
 .tree-row {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 8px 2px 10px;
-  font: 400 13px var(--font-mono);
+  gap: 6px;
+  padding: 3px 8px 3px 10px;
+  font: 400 14px var(--font-mono);
   color: var(--text-secondary);
   border-radius: 3px;
   cursor: pointer;
-  height: 22px;
-  min-height: 22px;
+  height: 26px;
+  min-height: 26px;
   white-space: nowrap;
   overflow: hidden;
 }

@@ -1,30 +1,41 @@
-import type { Terminal as XTerm } from "@xterm/xterm";
 import { native, type PtyEvent } from "@/lib/native";
 
-export interface PtyBridge {
-  /** Free the channel + close the Rust session. */
-  dispose(): Promise<void>;
+export interface PtyHandlers {
+  onData: (bytes: Uint8Array) => void;
+  onExit?: (code: number | null) => void;
+}
+
+export interface PtySession {
+  id: string;
+  write: (data: string) => Promise<void>;
+  resize: (cols: number, rows: number) => Promise<void>;
+  close: () => Promise<void>;
 }
 
 interface OpenOptions {
   id: string;
+  cols: number;
+  rows: number;
   cwd?: string;
   shell?: string;
-  term: XTerm;
-  onExit?: (code: number | null) => void;
-  onOutput?: (raw: Uint8Array) => void;
 }
 
-/** Open a PTY session and pipe it into an xterm instance. Returns a disposer. */
-export async function openPty(opts: OpenOptions): Promise<PtyBridge> {
+/**
+ * Open a PTY session and return a thin handle. Adapted from terax-ai's
+ * pty-bridge — we keep valley's caller-supplied string id (so tab ids
+ * survive persistence) but match terax's PtySession surface so the
+ * lifecycle hook can drive write/resize/close imperatively.
+ */
+export async function openPty(
+  opts: OpenOptions,
+  handlers: PtyHandlers,
+): Promise<PtySession> {
   const channel = new native.Channel<PtyEvent>();
   channel.onmessage = (ev) => {
     if (ev.type === "output") {
-      const raw = decodeBase64(ev.bytes);
-      opts.term.write(raw);
-      opts.onOutput?.(raw);
+      handlers.onData(decodeBase64(ev.bytes));
     } else if (ev.type === "exit") {
-      opts.onExit?.(ev.code);
+      handlers.onExit?.(ev.code);
     }
   };
 
@@ -32,25 +43,16 @@ export async function openPty(opts: OpenOptions): Promise<PtyBridge> {
     id: opts.id,
     shell: opts.shell,
     cwd: opts.cwd,
-    cols: opts.term.cols,
-    rows: opts.term.rows,
+    cols: opts.cols,
+    rows: opts.rows,
     onEvent: channel,
   });
 
-  // Forward keystrokes / paste from xterm to the PTY.
-  const dataDisposer = opts.term.onData((d) => {
-    void native.pty.write(opts.id, d);
-  });
-  const resizeDisposer = opts.term.onResize(({ cols, rows }) => {
-    void native.pty.resize(opts.id, cols, rows);
-  });
-
   return {
-    async dispose() {
-      dataDisposer.dispose();
-      resizeDisposer.dispose();
-      await native.pty.close(opts.id);
-    },
+    id: opts.id,
+    write: (data) => native.pty.write(opts.id, data),
+    resize: (c, r) => native.pty.resize(opts.id, c, r),
+    close: () => native.pty.close(opts.id),
   };
 }
 

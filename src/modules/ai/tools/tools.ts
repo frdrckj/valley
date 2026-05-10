@@ -9,7 +9,7 @@ export const tools = {
     inputSchema: z.object({ path: z.string() }),
     execute: async ({ path }) => {
       if (deny(path)) throw new Error(`refused: secret-like path "${path}"`);
-      const contents = await native.fs.readFile(path);
+      const contents = await native.fs.readText(path);
       return { path, contents };
     },
   }),

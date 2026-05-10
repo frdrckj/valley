@@ -1,5 +1,7 @@
+import { useEffect, useRef, useState } from "react";
 import { useTree } from "./lib/useTree";
 import { resolveIcon } from "./lib/iconResolver";
+import { useGitStatus } from "./lib/useGitStatus";
 import { Icon } from "@/components/Icon";
 import { useLayout, type Side } from "@/lib/layout";
 import { native, type DirEntry } from "@/lib/native";
@@ -17,6 +19,7 @@ export function FileTree({ root, collapsed, side = "left" }: FileTreeProps) {
   const showHidden = useSettings().showHiddenFiles;
   const { sidebarWidth, setSidebarWidth } = useLayout();
   const { topLevel, byPath, toggle } = useTree(root, showHidden);
+  const gitStatus = useGitStatus(root);
   if (collapsed) return null;
 
   return (
@@ -37,6 +40,7 @@ export function FileTree({ root, collapsed, side = "left" }: FileTreeProps) {
             depth={0}
             byPath={byPath}
             toggle={toggle}
+            gitStatus={gitStatus}
           />
         ))}
       </div>
@@ -60,8 +64,6 @@ function ResizeHandle({ side, width, onWidth }: ResizeHandleProps) {
     document.body.style.userSelect = "none";
 
     function onMove(ev: MouseEvent) {
-      // Sidebar on right → dragging the left edge: rightward movement
-      // shrinks the sidebar, so invert the delta.
       const delta = side === "right" ? startX - ev.clientX : ev.clientX - startX;
       onWidth(startW + delta);
     }
@@ -87,23 +89,64 @@ interface BranchProps {
   depth: number;
   byPath: Record<string, { expanded: boolean; children?: DirEntry[] }>;
   toggle: (path: string) => void;
+  gitStatus: Map<string, { status: string }>;
 }
 
-function Branch({ entry, depth, byPath, toggle }: BranchProps) {
+function Branch({ entry, depth, byPath, toggle, gitStatus }: BranchProps) {
   const node = byPath[entry.path];
   const expanded = entry.isDir && (node?.expanded ?? false);
   const ico = resolveIcon(entry.name, entry.isDir, expanded);
   const twisty = entry.isDir ? (expanded ? "▾" : "▸") : "";
 
+  const statusEntry = gitStatus.get(entry.path);
+  const statusCode = statusEntry?.status ?? null;
+
+  const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu on outside click or Escape.
+  useEffect(() => {
+    if (!menuPos) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setMenuPos(null);
+    }
+    function onDown(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuPos(null);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("mousedown", onDown);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("mousedown", onDown);
+    };
+  }, [menuPos]);
+
+  function onContextMenu(e: React.MouseEvent) {
+    if (entry.isDir) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setMenuPos({ x: e.clientX, y: e.clientY });
+  }
+
+  function openDiffTab() {
+    setMenuPos(null);
+    const s = useTabs.getState();
+    const existing = s.tabs.find((t) => t.kind === "diff" && t.path === entry.path);
+    if (existing) {
+      s.activate(existing.id);
+    } else {
+      s.open({ kind: "diff", label: entry.name, path: entry.path });
+    }
+  }
+
   function onDoubleClick() {
     const sessionId = activeSessionId();
     if (!sessionId) return;
     if (entry.isDir) {
-      // `cd <path>\r` — send the full command + carriage return so the
-      // shell executes it immediately, mirroring what the user would type.
       void native.pty.write(sessionId, `cd ${shellQuote(entry.path)}\r`);
     } else {
-      // For files (double-click): insert the quoted path at the cursor.
       void native.pty.write(sessionId, ` ${shellQuote(entry.path)}`);
     }
   }
@@ -113,8 +156,6 @@ function Branch({ entry, depth, byPath, toggle }: BranchProps) {
       toggle(entry.path);
       return;
     }
-    // Open file in a new file-viewer tab. If a tab for this path already
-    // exists, just activate it (no duplicates).
     const s = useTabs.getState();
     const existing = s.tabs.find(
       (t) => t.kind === "file" && t.path === entry.path,
@@ -133,6 +174,7 @@ function Branch({ entry, depth, byPath, toggle }: BranchProps) {
         style={{ paddingLeft: 10 + depth * 14 }}
         onClick={onClick}
         onDoubleClick={onDoubleClick}
+        onContextMenu={onContextMenu}
         title={
           entry.isDir
             ? `${entry.path}\nClick to expand · double-click to cd here`
@@ -141,8 +183,26 @@ function Branch({ entry, depth, byPath, toggle }: BranchProps) {
       >
         <span className="twisty">{twisty}</span>
         <Icon name={ico.name} size={12} style={{ color: ico.color }} />
-        <span>{entry.name}</span>
+        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {entry.name}
+        </span>
+        {statusCode && (
+          <span className={`git-badge ${statusCode === "?" ? "untracked" : statusCode}`}>
+            {statusCode}
+          </span>
+        )}
       </div>
+
+      {menuPos && (
+        <ContextMenu
+          ref={menuRef}
+          x={menuPos.x}
+          y={menuPos.y}
+          onDiff={openDiffTab}
+          onClose={() => setMenuPos(null)}
+        />
+      )}
+
       {expanded &&
         node?.children?.map((c) => (
           <Branch
@@ -151,11 +211,37 @@ function Branch({ entry, depth, byPath, toggle }: BranchProps) {
             depth={depth + 1}
             byPath={byPath}
             toggle={toggle}
+            gitStatus={gitStatus}
           />
         ))}
     </>
   );
 }
+
+interface ContextMenuProps {
+  x: number;
+  y: number;
+  onDiff: () => void;
+  onClose: () => void;
+  ref: React.RefObject<HTMLDivElement | null>;
+}
+
+const ContextMenu = function ContextMenu({ x, y, onDiff, ref }: ContextMenuProps) {
+  return (
+    <div
+      ref={ref}
+      className="vy-context-menu"
+      style={{ position: "fixed", left: x, top: y, zIndex: 100 }}
+    >
+      <button
+        className="vy-context-menu-item"
+        onMouseDown={(e) => { e.preventDefault(); onDiff(); }}
+      >
+        Open diff vs HEAD
+      </button>
+    </div>
+  );
+};
 
 /** Find the currently-focused terminal pane's session id, or null. */
 function activeSessionId(): string | null {

@@ -1,5 +1,17 @@
 import { invoke as tauriInvoke, Channel } from "@tauri-apps/api/core";
 
+export interface GitStatusEntry {
+  path: string;
+  status: string;
+  staged: boolean;
+}
+
+export interface GitDiffPayload {
+  head: string;
+  current: string;
+  unified: string;
+}
+
 export type PtyEvent =
   | { type: "output"; bytes: string }
   | { type: "exit"; code: number | null };
@@ -19,6 +31,11 @@ export interface DirEntry {
   isDir: boolean;
   isSymlink: boolean;
 }
+
+export type ReadResult =
+  | { kind: "text"; content: string; size: number }
+  | { kind: "binary"; size: number }
+  | { kind: "toolarge"; size: number; limit: number };
 
 /**
  * Single seam between TS and Rust. All `invoke()` calls live here so types are
@@ -44,8 +61,18 @@ export const native = {
     readDir(path: string): Promise<DirEntry[]> {
       return tauriInvoke("fs_read_dir", { path });
     },
-    readFile(path: string): Promise<string> {
+    readFile(path: string): Promise<ReadResult> {
       return tauriInvoke("fs_read_file", { path });
+    },
+    /**
+     * Convenience for callers that just want the text content. Throws if
+     * the file is binary or larger than the editor's text-load limit.
+     */
+    async readText(path: string): Promise<string> {
+      const r = await tauriInvoke<ReadResult>("fs_read_file", { path });
+      if (r.kind === "text") return r.content;
+      if (r.kind === "binary") throw new Error(`binary file: ${path}`);
+      throw new Error(`file too large: ${path} (${r.size} > ${r.limit})`);
     },
     writeFile(path: string, contents: string): Promise<void> {
       return tauriInvoke("fs_write_file", { path, contents });
@@ -65,6 +92,17 @@ export const native = {
     },
     delete(key: string): Promise<void> {
       return tauriInvoke("secrets_delete", { key });
+    },
+  },
+  git: {
+    repoRoot(path: string): Promise<string | null> {
+      return tauriInvoke<string | null>("git_repo_root", { path });
+    },
+    status(repo: string): Promise<GitStatusEntry[]> {
+      return tauriInvoke<GitStatusEntry[]>("git_status", { repo });
+    },
+    diff(repo: string, path: string, mode: "working" | "staged"): Promise<GitDiffPayload> {
+      return tauriInvoke<GitDiffPayload>("git_diff", { repo, path, mode });
     },
   },
   Channel,

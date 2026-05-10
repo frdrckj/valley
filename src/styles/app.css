@@ -238,6 +238,67 @@
   border-left: 2px solid var(--accent-primary);
   overflow: hidden;
 }
+/* Dev-server URL banner — appears at the bottom of a terminal pane when
+   `useTerminalSession` detects a `http(s)://localhost…` URL in PTY output.
+   One per pane, replaced when a different URL is detected, dismissable
+   via the X. Picked up by the user via "Open preview" → preview tab. */
+.vy-url-banner {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 10px;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  font: 400 12px var(--font-mono);
+  color: var(--text-primary);
+  pointer-events: auto;
+  z-index: 4;
+  animation: vy-url-banner-slide-up 160ms var(--ease-standard) both;
+}
+@keyframes vy-url-banner-slide-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.vy-url-banner-text {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-muted);
+}
+.vy-url-banner-btn {
+  font: 500 11px var(--font-mono);
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: var(--accent-primary);
+  color: var(--surface-base);
+  border: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.vy-url-banner-btn:hover { filter: brightness(1.1); }
+.vy-url-banner-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.vy-url-banner-x:hover { background: var(--hover-tint); color: var(--text-primary); }
+
 .vy-term-dim {
   position: absolute;
   inset: 0;
@@ -684,16 +745,28 @@
 .vy-file-body {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
-.vy-file-pre {
-  margin: 0;
-  padding: 12px 16px;
-  font: 400 13px var(--font-mono);
-  color: var(--text-primary);
-  white-space: pre;
-  tab-size: 2;
+.vy-file-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--text-muted);
+  font: 400 12px var(--font-mono);
 }
+.vy-file-empty-title { color: var(--text-primary); font-size: 13px; }
+.vy-file-empty-sub { font-size: 11px; }
+.vy-cm,
+.vy-cm > .cm-editor {
+  height: 100%;
+  width: 100%;
+}
+.vy-cm > .cm-editor { min-height: 0; }
 
 /* ----- Preview pane ----- */
 .vy-preview-pane {
@@ -847,6 +920,114 @@
   gap: 4px;
 }
 
+/* ----- Quick-switcher Omnibar ----- */
+.vy-omnibar-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 80px;
+  z-index: 70;
+  animation: vy-omnibar-fade-in 120ms var(--ease-standard) both;
+}
+@keyframes vy-omnibar-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.vy-omnibar {
+  width: 640px;
+  max-width: 92vw;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-floating);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 120px);
+}
+.vy-omnibar-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex: none;
+}
+.vy-omnibar-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font: 400 15px var(--font-mono);
+  color: var(--text-primary);
+  height: 28px;
+}
+.vy-omnibar-input::placeholder { color: var(--text-muted); }
+.vy-omnibar-results {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px;
+}
+.vy-omnibar-group { margin-bottom: 2px; }
+.vy-omnibar-group-head {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  padding: 6px 10px 4px;
+}
+.vy-omnibar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+.vy-omnibar-row:hover { background: var(--hover-tint); }
+.vy-omnibar-row.is-active { background: var(--surface-active); }
+.vy-omnibar-row-name {
+  font: 400 13px var(--font-mono);
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vy-omnibar-row-path {
+  font: 400 11px var(--font-mono);
+  color: var(--text-muted);
+  min-width: 0;
+  max-width: 260px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: right;
+  flex-shrink: 0;
+}
+/* Right-aligned key hint chip on Command rows. Renders as small caps in
+   a translucent muted box, similar to the shortcuts dialog. */
+.vy-omnibar-row-hint {
+  font: 500 10px var(--font-mono);
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  background: var(--hover-tint);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 2px 6px;
+  flex-shrink: 0;
+}
+.vy-omnibar-empty {
+  padding: 20px 14px;
+  text-align: center;
+  font: 400 12px var(--font-mono);
+  color: var(--text-muted);
+}
+
 .set-blurb {
   font-size: 12px;
   color: var(--text-muted);
@@ -943,3 +1124,157 @@
   padding: 12px 16px;
 }
 .vy-xterm-host .xterm-viewport { background: var(--surface-base) !important; }
+
+/* ----- Block status gutter (per-command status indicator) -----
+   DOM overlay positioned in the LEFT MARGIN of the terminal pane,
+   outside the xterm canvas — so marks never obscure terminal content.
+   blockGutter.ts absolute-positions one .vy-block-gutter-mark per
+   exited command at the row's pixel offset, and re-positions on scroll
+   + resize. The gutter sits on top of the pane's left border. */
+.vy-block-gutter {
+  position: absolute;
+  /* Sit just past the term-pane's 2px focus border so the two stripes
+     don't visually merge into a single ambiguous bar. */
+  left: 4px;
+  top: 12px;     /* match xterm host's padding-top */
+  bottom: 12px;  /* match xterm host's padding-bottom */
+  width: 4px;
+  pointer-events: none;
+  z-index: 3;
+  overflow: hidden;
+}
+.vy-block-gutter-mark {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  /* `top`, `height`, and `background` are set inline by blockGutter.ts.
+     The class only modifies opacity so failed runs jump out more. */
+  border-radius: 1px;
+  transition: opacity var(--dur-fast) var(--ease-standard);
+}
+.vy-block-gutter-mark.is-ok   { opacity: 0.55; }
+.vy-block-gutter-mark.is-fail { opacity: 0.95; }
+
+/* ----- Git status badges in file tree ----- */
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.tree-row .git-badge {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.9;
+  flex-shrink: 0;
+  margin-left: auto;
+  padding-right: 4px;
+  font-family: var(--font-mono);
+  line-height: 1;
+}
+.git-badge.M { color: var(--accent-primary); }
+.git-badge.A { color: var(--accent-success); }
+.git-badge.D { color: var(--accent-danger); }
+.git-badge.U { color: var(--accent-danger); font-weight: 700; }
+.git-badge.R { color: var(--accent-info); }
+.git-badge.T { color: var(--accent-warning); }
+.git-badge.untracked { color: var(--text-muted); }
+
+/* ----- Diff view pane ----- */
+.vy-diff-pane {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: var(--surface-base);
+}
+.vy-diff-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface);
+  flex: none;
+  font: 400 12px var(--font-mono);
+}
+.vy-diff-mode-toggle {
+  display: inline-flex;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 2px;
+  gap: 2px;
+}
+.vy-diff-mode-btn {
+  padding: 3px 8px;
+  font: 400 11px var(--font-mono);
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.vy-diff-mode-btn.is-active {
+  background: var(--accent-primary);
+  color: var(--gb-dark-bg-0);
+  font-weight: 500;
+}
+.vy-diff-mode-btn:not(.is-active):hover {
+  background: var(--hover-tint);
+  color: var(--text-strong);
+}
+.vy-diff-open-btn {
+  margin-left: auto;
+  padding: 3px 8px;
+  font: 400 11px var(--font-mono);
+  color: var(--accent-primary);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.vy-diff-open-btn:hover { text-decoration: underline; }
+.vy-diff-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+/* MergeView host sizing — make both panes fill the container. */
+.vy-diff-body .cm-merge-view {
+  height: 100%;
+}
+.vy-diff-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 400 13px var(--font-mono);
+  color: var(--text-muted);
+}
+
+/* ----- Right-click context menu in file tree ----- */
+.vy-context-menu {
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-floating);
+  overflow: hidden;
+  min-width: 160px;
+}
+.vy-context-menu-item {
+  display: block;
+  width: 100%;
+  padding: 8px 14px;
+  font: 400 13px var(--font-mono);
+  color: var(--text-primary);
+  background: transparent;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+}
+.vy-context-menu-item:hover {
+  background: var(--hover-tint);
+  color: var(--text-strong);
+}

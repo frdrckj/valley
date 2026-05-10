@@ -24,11 +24,14 @@ export type ShortcutId =
   | "pane.focus.up"
   | "pane.focus.down"
   | "search.focus"
+  | "prompt.prev"
+  | "prompt.next"
   | "ai.toggle"
   | "ai.askSelection"
   | "shortcuts.open"
   | "settings.open"
-  | "sidebar.toggle";
+  | "sidebar.toggle"
+  | "omnibar.open";
 
 export type ShortcutGroup =
   | "General"
@@ -76,11 +79,19 @@ export const SHORTCUTS: Shortcut[] = [
     match: (e) => isMod(e) && e.key.toLowerCase() === "t",
   },
   {
+    id: "omnibar.open",
+    label: "Quick switcher",
+    keys: ["⌘", "P"],
+    group: "General",
+    match: (e) => isMod(e) && !e.shiftKey && e.key.toLowerCase() === "p",
+  },
+  {
+    // Moved from Cmd+P to Cmd+Shift+Y to free Cmd+P for the quick switcher.
     id: "tab.newPreview",
     label: "New preview tab",
-    keys: ["⌘", "P"],
+    keys: ["⌘", "⇧", "Y"],
     group: "Tabs",
-    match: (e) => isMod(e) && !e.shiftKey && e.key.toLowerCase() === "p",
+    match: (e) => isMod(e) && e.shiftKey && e.key.toLowerCase() === "y",
   },
   {
     id: "tab.newEditor",
@@ -167,6 +178,20 @@ export const SHORTCUTS: Shortcut[] = [
     keys: ["⌘", "F"],
     group: "Search",
     match: (e) => isMod(e) && e.key.toLowerCase() === "f",
+  },
+  {
+    id: "prompt.prev",
+    label: "Previous prompt",
+    keys: ["⌘", "⇧", "↑"],
+    group: "Search",
+    match: (e) => isMod(e) && e.shiftKey && e.key === "ArrowUp",
+  },
+  {
+    id: "prompt.next",
+    label: "Next prompt",
+    keys: ["⌘", "⇧", "↓"],
+    group: "Search",
+    match: (e) => isMod(e) && e.shiftKey && e.key === "ArrowDown",
   },
   {
     id: "ai.toggle",

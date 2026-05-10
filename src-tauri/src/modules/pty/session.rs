@@ -59,6 +59,35 @@ pub async fn pty_open(
         cmd.cwd(cwd);
     }
 
+    // .app bundles launched from Finder inherit only launchd's tiny env —
+    // no TERM, no COLORTERM. Without TERM, zsh's line editor can't read
+    // terminfo, the cursor moves wrong, and `clear`/etc. fail with
+    // "TERM environment variable not set". xterm.js targets xterm-256color
+    // so that's our floor.
+    cmd.env("TERM", "xterm-256color");
+    cmd.env("COLORTERM", "truecolor");
+    // Some tools key off this to detect that they're inside a "real" term.
+    cmd.env("TERM_PROGRAM", "valley");
+    if let Ok(home) = std::env::var("HOME") {
+        cmd.env("HOME", home);
+    }
+    if let Ok(user) = std::env::var("USER") {
+        cmd.env("USER", user);
+    }
+    if let Ok(lang) = std::env::var("LANG") {
+        cmd.env("LANG", lang);
+    } else {
+        cmd.env("LANG", "en_US.UTF-8");
+    }
+    // PATH needs to be present even before login-shell init runs, otherwise
+    // the shell's own startup (which calls `command` etc.) can fail. The
+    // login shell will append the user's full PATH from /etc/paths + ~/.zprofile.
+    if let Ok(path) = std::env::var("PATH") {
+        cmd.env("PATH", path);
+    } else {
+        cmd.env("PATH", "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin");
+    }
+
     // Pass -l only for POSIX shells that accept it (bash/zsh/sh).
     if matches!(init.shell_kind, ShellKind::Zsh | ShellKind::Bash) {
         cmd.arg("-l");
@@ -67,11 +96,17 @@ pub async fn pty_open(
     // Inject our init dir while preserving the user's original $ZDOTDIR / $BASH_ENV.
     match init.shell_kind {
         ShellKind::Zsh => {
-            if let Ok(prev) = std::env::var("ZDOTDIR") {
-                cmd.env("VALLEY_USER_ZDOTDIR", prev);
-            } else {
-                cmd.env("VALLEY_USER_ZDOTDIR", std::env::var("HOME").unwrap_or_default());
-            }
+            // If parent's ZDOTDIR is itself a stale `valley-init-*` temp
+            // dir (e.g. from a previous dev-mode run that the parent
+            // shell still inherits), trusting it would point us at our
+            // own scripts and cause an infinite source loop. Fall back
+            // to HOME in that case so we always layer over the user's
+            // real config.
+            let user_zdotdir = std::env::var("ZDOTDIR")
+                .ok()
+                .filter(|p| !p.contains("valley-init-"))
+                .unwrap_or_else(|| std::env::var("HOME").unwrap_or_default());
+            cmd.env("VALLEY_USER_ZDOTDIR", user_zdotdir);
             cmd.env("ZDOTDIR", init.dir.to_string_lossy().to_string());
         }
         ShellKind::Bash => {

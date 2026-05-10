@@ -4,16 +4,20 @@ import { newLeaf } from "@/modules/terminal/lib/splits";
 
 export type Tab = {
   id: string;
-  kind: "terminal" | "preview" | "file";
+  kind: "terminal" | "preview" | "file" | "diff";
   cwd?: string;
   label: string;
   panes: Pane;
   /** Preview-tab url. Ignored for terminal tabs. */
   url?: string;
-  /** File-tab absolute path. */
+  /** File-tab / diff-tab absolute path. */
   path?: string;
   /** Set when the user manually renames the tab; suppresses cwd auto-labelling. */
   userRenamed?: boolean;
+  /** File-tab unsaved-changes flag. Runtime-only; not persisted. */
+  dirty?: boolean;
+  /** Diff-tab mode: compare working tree vs HEAD, or staged index vs HEAD. */
+  diffMode?: "working" | "staged";
 };
 
 interface TabsState {
@@ -26,6 +30,7 @@ interface TabsState {
   setPanes(id: string, panes: Pane): void;
   setCwd(id: string, cwd: string): void;
   setUrl(id: string, url: string): void;
+  setDirty(id: string, dirty: boolean): void;
 }
 
 let counter = 0;
@@ -58,6 +63,8 @@ export const useTabs = create<TabsState>((set, get) => ({
       label: input.label,
       panes: newLeaf(`pty-${id}`),
       url: input.url,
+      path: input.path,
+      diffMode: input.diffMode,
     };
     set((s) => ({ tabs: [...s.tabs, tab], activeId: id }));
     return id;
@@ -96,5 +103,14 @@ export const useTabs = create<TabsState>((set, get) => ({
   },
   setUrl(id, url) {
     set({ tabs: get().tabs.map((t) => (t.id === id ? { ...t, url } : t)) });
+  },
+  setDirty(id, dirty) {
+    const t = get().tabs.find((t) => t.id === id);
+    if (!t || !!t.dirty === dirty) return;
+    set({
+      tabs: get().tabs.map((t) =>
+        t.id === id ? { ...t, dirty } : t,
+      ),
+    });
   },
 }));

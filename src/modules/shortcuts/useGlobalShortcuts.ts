@@ -8,6 +8,21 @@ export type UseGlobalShortcutsOptions = {
   isDisabled?: (id: ShortcutId, e: KeyboardEvent) => boolean;
 };
 
+// Module-level mirror of the latest registered handlers. Powers
+// `dispatchShortcutById` so things like the omnibar's command palette can
+// invoke a shortcut programmatically without a synthetic KeyboardEvent.
+const globalHandlers: { current: ShortcutHandlers } = { current: {} };
+
+/** Programmatically invoke a registered shortcut handler by id. No-op if
+ *  the id isn't currently bound. */
+export function dispatchShortcutById(id: ShortcutId): void {
+  const h = globalHandlers.current[id];
+  if (!h) return;
+  // Synthesize a minimal event so handlers that read `e.key` etc. don't
+  // crash. None of valley's current handlers actually inspect the event.
+  h(new KeyboardEvent("keydown"));
+}
+
 /**
  * Capture-phase global keyboard shortcut dispatcher. Mirrors terax-ai's
  * pattern: each shortcut owns its own `match()` predicate, and we run
@@ -21,6 +36,8 @@ export function useGlobalShortcuts(
 ) {
   const latest = useRef({ handlers, options });
   latest.current = { handlers, options };
+  // Mirror so `dispatchShortcutById` can find the same handlers.
+  globalHandlers.current = handlers;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
