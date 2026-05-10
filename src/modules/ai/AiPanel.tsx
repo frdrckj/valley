@@ -1,11 +1,12 @@
 import { useChat } from "@ai-sdk/react";
 import type { Chat } from "@ai-sdk/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
 import type { Side } from "@/lib/layout";
 import type { AppMessage } from "./lib/transport";
 import { getActiveSession, createSession, hydrateSessions } from "./lib/sessions";
 import { getOrCreateChat } from "./store/chatStore";
+import { useAiContext } from "./store/contextStore";
 import { MessageList } from "./components/MessageList";
 
 interface AiPanelProps {
@@ -70,8 +71,30 @@ function AiPanelInner({
 }) {
   const { messages, sendMessage, status, addToolApprovalResponse } = useChat<AppMessage>({ chat });
   const [text, setText] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const isStreaming = status === "submitted" || status === "streaming";
+
+  // Drain pending terminal-context (set by ⌘L). Runs on mount AND
+  // subscribes to later updates so a second ⌘L while the panel is
+  // already open also attaches the new selection.
+  useEffect(() => {
+    function drain() {
+      const ctx = useAiContext.getState().consume();
+      if (!ctx) return;
+      // Prepend a fenced code block so the model sees "this is the
+      // context you're being asked about", and put the cursor after it.
+      const block = `\`\`\`\n${ctx}\n\`\`\`\n\n`;
+      setText((prev) => block + prev);
+      // Defer focus so React commits the value first.
+      requestAnimationFrame(() => inputRef.current?.focus());
+    }
+    drain();
+    const unsub = useAiContext.subscribe((s) => {
+      if (s.pending !== null) drain();
+    });
+    return unsub;
+  }, []);
 
   function handleApprove(approvalId: string, approved: boolean) {
     void addToolApprovalResponse({ id: approvalId, approved });
@@ -89,8 +112,9 @@ function AiPanelInner({
       <div className="vy-aipanel-composer">
         <Icon name="clip" size={13} style={{ color: "var(--text-muted)" }} />
         <input
+          ref={inputRef}
           className="input"
-          placeholder="ask valley · ⌘L to focus"
+          placeholder="ask valley · ⌘L to attach selection"
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {

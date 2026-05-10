@@ -38,6 +38,7 @@ import {
   getBlockTrackerFor,
   getTerminalFor,
 } from "@/modules/terminal/lib/useTerminalSession";
+import { useAiContext } from "@/modules/ai/store/contextStore";
 
 const WORKSPACE_ROOT = "/Users/frederickjerusha/Documents/works/terminal/valley";
 
@@ -63,6 +64,50 @@ function focusNeighborInActiveTab(direction: Direction) {
   const tab = s.tabs.find((t) => t.id === s.activeId);
   if (!tab || tab.kind !== "terminal") return;
   s.setPanes(tab.id, focusNeighbor(tab.panes, direction));
+}
+
+/** Capture text to feed into the AI composer when the user hits ⌘L.
+ *  Priority: explicit terminal selection → most-recent completed
+ *  block's output → null (caller just opens the panel). */
+function captureActiveTerminalContext(): string | null {
+  const s = useTabs.getState();
+  if (!s.activeId) return null;
+  const tab = s.tabs.find((t) => t.id === s.activeId);
+  if (!tab || tab.kind !== "terminal") return null;
+  const active = findActive(tab.panes);
+  if (!active) return null;
+  const term = getTerminalFor(active.sessionId);
+  if (!term) return null;
+
+  const sel = term.getSelection();
+  if (sel && sel.trim()) return sel;
+
+  const tracker = getBlockTrackerFor(active.sessionId);
+  if (!tracker) return null;
+  const blocks = tracker.blocks();
+  let targetIdx = -1;
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    if (blocks[i]?.exitCode !== null && blocks[i]?.exitCode !== undefined) {
+      targetIdx = i;
+      break;
+    }
+  }
+  const target = targetIdx >= 0 ? blocks[targetIdx] : null;
+  if (!target) return null;
+
+  const next = blocks[targetIdx + 1];
+  const startLine = target.startMarker.line;
+  const endLine = next
+    ? next.startMarker.line
+    : term.buffer.active.baseY + term.buffer.active.cursorY + 1;
+  const buf = term.buffer.active;
+  const lines: string[] = [];
+  for (let y = startLine; y < endLine; y++) {
+    const line = buf.getLine(y);
+    if (line) lines.push(line.translateToString(true));
+  }
+  while (lines.length && lines[lines.length - 1] === "") lines.pop();
+  return lines.length > 0 ? lines.join("\n") : null;
 }
 
 /** Copy the most-recent completed command's output (the block from its
@@ -263,9 +308,10 @@ export default function App() {
     "block.copy": () => copyCurrentBlock(),
     "ai.toggle": () => setAiPanelOpen((v) => !v),
     "ai.askSelection": () => {
-      // For now, treat this as "open the AI omnibar" — closest current behavior
-      // until we wire selection capture from xterm.
-      setAiPanelOpen((v) => !v);
+      // Capture before opening so the panel can consume on first render.
+      const ctx = captureActiveTerminalContext();
+      if (ctx) useAiContext.getState().setPending(ctx);
+      setAiPanelOpen(true);
     },
     "sidebar.toggle": () => setExplorerOpen((v) => !v),
   });
