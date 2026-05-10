@@ -1,8 +1,11 @@
 # valley shell integration — sourced after user's ~/.zshrc.
 # Re-source guard: prevents an infinite loop if the user's .zshrc
-# accidentally sources $ZDOTDIR/.zshrc (which is us).
+# accidentally sources $ZDOTDIR/.zshrc (which is us). Shell-local
+# (NOT exported) — exporting it leaks into tmux's server env so every
+# subsequent pane skips user config and falls back to the bare zsh
+# prompt with no aliases/functions/themes.
 [[ -n "$_VALLEY_ZSHRC_DONE" ]] && return
-typeset -gx _VALLEY_ZSHRC_DONE=1
+typeset -g _VALLEY_ZSHRC_DONE=1
 
 # Inside tmux, raw OSC sequences from the inner shell are consumed by
 # tmux for its own pane state and never reach valley's xterm — that's

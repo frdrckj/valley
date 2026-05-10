@@ -3,7 +3,9 @@
 # subshells); the guard prevents an infinite loop if a downstream
 # config file accidentally re-sources $ZDOTDIR/.zshenv.
 [[ -n "$_VALLEY_ZSHENV_DONE" ]] && return
-typeset -gx _VALLEY_ZSHENV_DONE=1
+# Shell-local guard (no -x). Exporting leaks into subshells/tmux and
+# breaks every downstream zshrc.
+typeset -g _VALLEY_ZSHENV_DONE=1
 if [[ -n "$VALLEY_USER_ZDOTDIR" \
    && "$VALLEY_USER_ZDOTDIR" != "$ZDOTDIR" \
    && -f "$VALLEY_USER_ZDOTDIR/.zshenv" ]]; then
