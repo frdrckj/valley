@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { TitleBar } from "@/modules/header/TitleBar";
 import { useTabs } from "@/modules/tabs/useTabs";
+import { hydrateTabs, startTabsPersistence } from "@/modules/tabs/persistence";
 import { FileTree } from "@/modules/explorer/FileTree";
 import { StatusBar } from "@/modules/statusbar/StatusBar";
 import { TerminalStack } from "@/modules/terminal/TerminalStack";
@@ -75,8 +76,19 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const { tabs, open } = useTabs.getState();
-    if (tabs.length === 0) open({ kind: "terminal", label: "zsh" });
+    let unsubscribe: (() => void) | null = null;
+    void (async () => {
+      const restored = await hydrateTabs();
+      if (!restored) {
+        useTabs.getState().open({ kind: "terminal", label: "zsh" });
+      }
+      // Subscribe AFTER hydrate so we don't immediately overwrite the
+      // restored state with a half-loaded snapshot.
+      unsubscribe = startTabsPersistence();
+    })();
+    return () => {
+      unsubscribe?.();
+    };
   }, []);
 
   useEffect(() => {
