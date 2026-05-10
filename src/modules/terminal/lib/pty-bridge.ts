@@ -21,10 +21,9 @@ interface OpenOptions {
 }
 
 /**
- * Open a PTY session and return a thin handle. Adapted from terax-ai's
- * pty-bridge — we keep valley's caller-supplied string id (so tab ids
- * survive persistence) but match terax's PtySession surface so the
- * lifecycle hook can drive write/resize/close imperatively.
+ * Open a PTY session and return a thin handle. The caller-supplied
+ * string id lets tab ids survive persistence; the returned PtySession
+ * surface lets the lifecycle hook drive write/resize/close imperatively.
  */
 export async function openPty(
   opts: OpenOptions,

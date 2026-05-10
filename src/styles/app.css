@@ -16,8 +16,8 @@
 
 /* ----- Header bar -----
    macOS overlay style: the OS draws traffic lights at top-left, so we
-   leave 80 px of left gutter. Modeled on terax's header — sidebar toggle,
-   tabs, draggable spacer, settings button. */
+   leave 80 px of left gutter — sidebar toggle, tabs, draggable
+   spacer, settings button. */
 .vy-header {
   height: 40px;
   display: flex;

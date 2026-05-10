@@ -1,8 +1,8 @@
 /**
- * Single source of truth for keyboard shortcuts. Mirrors terax-ai's
- * shortcuts module: each entry carries display tokens for the dialog AND
- * a `match` predicate over the live KeyboardEvent so the dialog can
- * never lie about a binding the runtime no longer matches.
+ * Single source of truth for keyboard shortcuts. Each entry carries
+ * display tokens for the dialog AND a `match` predicate over the live
+ * KeyboardEvent so the dialog can never lie about a binding the
+ * runtime no longer matches.
  */
 
 const IS_MAC =

@@ -10,9 +10,8 @@ import { EditorView } from "@codemirror/view";
 export const languageCompartment = new Compartment();
 
 /**
- * Shared editor extensions — chrome that's the same regardless of file
- * type. Adapted from terax-ai's buildSharedExtensions, trimmed: no vim
- * compartment, no inline-completion (deferred to AI phase).
+ * Shared editor extensions — chrome that's the same regardless of
+ * file type. No vim compartment and no inline-completion yet.
  */
 export function buildSharedExtensions(): Extension[] {
   return [

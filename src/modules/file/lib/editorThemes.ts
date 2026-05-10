@@ -5,11 +5,10 @@ import { tags as t } from "@lezer/highlight";
 import type { ThemeId } from "@/modules/theme/themes";
 
 /**
- * CodeMirror editor themes for valley. Adapted from terax-ai's
- * gruvboxTheme.ts — same `buildTheme(palette, isDark)` shape, but extended
- * to all four valley palettes (gruvbox-material-dark, gruvbox-light-hard,
- * tokyo-night-storm, nord). The token-tag → color mapping follows terax,
- * which itself follows the "Correia Gruvbox Theme" VS Code mapping.
+ * CodeMirror editor themes for valley. A single `buildTheme(palette,
+ * isDark)` driver across all four palettes (gruvbox-material-dark,
+ * gruvbox-light-hard, tokyo-night-storm, nord). The token-tag → color
+ * mapping follows the "Correia Gruvbox Theme" VS Code conventions.
  */
 
 interface Palette {
@@ -191,7 +190,7 @@ function buildTheme(p: Palette, isDark: boolean): Extension {
     { dark: isDark },
   );
 
-  // Token mapping mirrors terax's gruvboxTheme — palette only differs.
+  // Token mapping is shared across palettes; only the colors differ.
   const highlight = HighlightStyle.define([
     { tag: t.comment, color: p.gray, fontStyle: "italic" },
     { tag: t.lineComment, color: p.gray, fontStyle: "italic" },

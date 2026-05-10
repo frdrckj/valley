@@ -2,8 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { native } from "@/lib/native";
 
 /**
- * Editor document state. Adapted from terax-ai's useDocument — same status
- * machine and dirty tracking, swapped onto valley's native.fs shim.
+ * Editor document state on top of valley's native.fs shim.
  *
  * `savedRef` is the contents on disk; `bufferRef` is what the user has
  * typed. Dirty = the two diverge. Save flushes buffer → disk and resets

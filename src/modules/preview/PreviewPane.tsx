@@ -8,10 +8,9 @@ interface PreviewPaneProps {
 }
 
 /**
- * Minimal preview pane — embeds an iframe at the requested URL with a
- * tiny URL bar above it. This is the Phase 1 stub for terax-style
- * "preview tab"; auto-detection of dev-server URLs from terminal output
- * lands in Phase 3.
+ * Minimal preview pane — embeds an iframe at the requested URL with
+ * a tiny URL bar above it. Auto-detection of dev-server URLs from
+ * terminal output is wired separately via the URL banner.
  */
 export function PreviewPane({ tabId, url }: PreviewPaneProps) {
   const [draft, setDraft] = useState(url);

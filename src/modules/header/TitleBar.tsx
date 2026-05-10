@@ -10,8 +10,8 @@ interface TitleBarProps {
 }
 
 /**
- * macOS overlay header bar — modeled on terax-ai's Header. Drag is wired
- * through both terax's declarative path (`data-tauri-drag-region`) AND
+ * macOS overlay header bar. Drag is wired through both the
+ * declarative path (`data-tauri-drag-region`) AND
  * an imperative `getCurrentWindow().startDragging()` fallback so at
  * least one path lands on every Tauri / macOS combination.
  *

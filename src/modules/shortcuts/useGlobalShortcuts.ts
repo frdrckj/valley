@@ -24,11 +24,11 @@ export function dispatchShortcutById(id: ShortcutId): void {
 }
 
 /**
- * Capture-phase global keyboard shortcut dispatcher. Mirrors terax-ai's
- * pattern: each shortcut owns its own `match()` predicate, and we run
- * `preventDefault` + `stopImmediatePropagation` only when a handler is
- * registered for the matched id. Capture-phase ensures we win against
- * inner inputs like xterm, CodeMirror, and the AI composer textarea.
+ * Capture-phase global keyboard shortcut dispatcher. Each shortcut
+ * owns its own `match()` predicate, and we run `preventDefault` +
+ * `stopImmediatePropagation` only when a handler is registered for
+ * the matched id. Capture-phase ensures we win against inner inputs
+ * like xterm, CodeMirror, and the AI composer textarea.
  */
 export function useGlobalShortcuts(
   handlers: ShortcutHandlers,

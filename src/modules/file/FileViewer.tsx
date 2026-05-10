@@ -23,9 +23,9 @@ interface FileViewerProps {
  * Editable file pane. CodeMirror 6 + lazy per-language grammar +
  * gruvbox/tokyo-night/nord themes that mirror valley's terminal palette.
  *
- * Pattern adapted from terax-ai's EditorPane: the language extension lives
- * in a Compartment so we can swap it after the dynamic import resolves
- * without rebuilding the whole state (which would wipe the user's caret).
+ * The language extension lives in a Compartment so we can swap it
+ * after the dynamic import resolves without rebuilding the whole
+ * state (which would wipe the user's caret).
  *
  * Save is Cmd+S. Dirty state shows as a `•` next to the filename.
  */

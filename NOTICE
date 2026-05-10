@@ -1,9 +1,0 @@
-valley
-======
-
-Portions of valley's terminal lifecycle code (`src/modules/terminal/lib/`)
-are adapted from terax-ai (https://github.com/crynta/terax-ai) by crynta,
-licensed under the Apache License, Version 2.0.
-
-Apache License 2.0:
-http://www.apache.org/licenses/LICENSE-2.0

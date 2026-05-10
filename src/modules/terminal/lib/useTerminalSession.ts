@@ -89,11 +89,11 @@ export interface UseTerminalSession {
 }
 
 /**
- * Manages an xterm + PTY pair for the lifetime of a single mount. Adapted
- * from terax-ai's useTerminalSession — single useEffect with `disposed`
- * closure flag, batch cleanups, two-stage debounced resize. The ref-based
- * callback pattern means callers can pass new closures every render
- * without retriggering the lifecycle.
+ * Manages an xterm + PTY pair for the lifetime of a single mount.
+ * Single useEffect with a `disposed` closure flag, batch cleanups,
+ * two-stage debounced resize. The ref-based callback pattern means
+ * callers can pass new closures every render without retriggering
+ * the lifecycle.
  */
 export function useTerminalSession({
   sessionId,
@@ -235,7 +235,7 @@ export function useTerminalSession({
       cleanups.push(() => pathLinkDispose.dispose());
 
       // Try WebGL — falls back silently to canvas on Tauri WKWebView if
-      // the context isn't available. Terax does the same dance.
+      // the context isn't available.
       try {
         const webgl = new WebglAddon();
         webgl.onContextLoss(() => webgl.dispose());
