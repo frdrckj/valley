@@ -488,6 +488,59 @@
 .vy-aipanel-composer .input { background: transparent; border: none; }
 .vy-aipanel-composer .input:focus { box-shadow: none; }
 
+/* Stop button shown in place of the send icon while the model is
+   actively streaming. Click or press Esc inside the input to cancel. */
+.vy-aipanel-stop {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--accent-danger);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--accent-danger);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-standard);
+}
+.vy-aipanel-stop:hover {
+  background: color-mix(in srgb, var(--accent-danger) 12%, transparent);
+}
+
+/* Empty state shown when no API key is set for the active provider —
+   replaces the body + composer entirely. */
+.vy-aipanel-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px 24px;
+  gap: 4px;
+}
+.vy-aipanel-empty-title {
+  font: 500 13px var(--font-mono);
+  color: var(--text-primary);
+}
+.vy-aipanel-empty-sub {
+  font: 400 11px var(--font-mono);
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}
+.vy-aipanel-empty-btn {
+  font: 500 12px var(--font-mono);
+  padding: 6px 14px;
+  border-radius: 6px;
+  background: var(--accent-primary);
+  color: var(--surface-base);
+  border: 0;
+  cursor: pointer;
+  transition: filter var(--dur-fast) var(--ease-standard);
+}
+.vy-aipanel-empty-btn:hover { filter: brightness(1.08); }
+
 /* ----- Omnibar ----- */
 .vy-omni-overlay {
   position: absolute;

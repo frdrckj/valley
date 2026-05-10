@@ -1,12 +1,15 @@
 import { useChat } from "@ai-sdk/react";
 import type { Chat } from "@ai-sdk/react";
 import { useEffect, useRef, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { Icon } from "@/components/Icon";
 import type { Side } from "@/lib/layout";
+import { useSettings } from "@/lib/settings";
 import type { AppMessage } from "./lib/transport";
 import { getActiveSession, createSession, hydrateSessions } from "./lib/sessions";
 import { getOrCreateChat } from "./store/chatStore";
 import { useAiContext } from "./store/contextStore";
+import { keyring, type Provider } from "./lib/keyring";
 import { MessageList } from "./components/MessageList";
 
 interface AiPanelProps {
@@ -20,24 +23,84 @@ interface AiPanelProps {
   onPin?: () => void;
 }
 
+type InitState =
+  | { kind: "loading" }
+  | { kind: "needs-key"; provider: Provider }
+  | { kind: "ready"; chat: Chat<AppMessage> }
+  | { kind: "error"; message: string };
+
 export function AiPanel({ width = 360, side = "right" }: AiPanelProps) {
-  const [chat, setChat] = useState<Chat<AppMessage> | null>(null);
-  const [initError, setInitError] = useState<string | null>(null);
+  const provider = useSettings().defaultProvider as Provider;
+  const [state, setState] = useState<InitState>({ kind: "loading" });
 
   useEffect(() => {
+    let cancelled = false;
     void (async () => {
+      // Gate on key presence FIRST — friendlier than throwing through chat
+      // init and rendering a red error bubble. If the user pastes a key in
+      // settings then re-opens the panel via ⌘I, this re-runs and recovers.
       try {
+        const key = await keyring.get(provider);
+        if (cancelled) return;
+        if (!key) {
+          setState({ kind: "needs-key", provider });
+          return;
+        }
         await hydrateSessions();
+        if (cancelled) return;
         let session = await getActiveSession();
         if (!session) session = await createSession({ title: "untitled" });
-        setChat(await getOrCreateChat(session.id));
+        if (cancelled) return;
+        const chat = await getOrCreateChat(session.id);
+        if (cancelled) return;
+        setState({ kind: "ready", chat });
       } catch (e) {
-        setInitError(e instanceof Error ? e.message : String(e));
+        if (!cancelled)
+          setState({
+            kind: "error",
+            message: e instanceof Error ? e.message : String(e),
+          });
       }
     })();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [provider]);
 
-  if (initError) {
+  if (state.kind === "loading") {
+    return <div className="vy-aipanel" data-side={side} style={{ width }} />;
+  }
+
+  if (state.kind === "needs-key") {
+    return (
+      <div className="vy-aipanel" data-side={side} style={{ width }}>
+        <div className="vy-aipanel-head">
+          <Icon name="sparkle" size={13} style={{ color: "var(--accent-ai)" }} />
+          <span style={{ color: "var(--text-strong)", fontWeight: 500 }}>valley</span>
+        </div>
+        <div className="vy-aipanel-empty">
+          <Icon
+            name="lock"
+            size={22}
+            style={{ color: "var(--text-muted)", marginBottom: 12 }}
+          />
+          <div className="vy-aipanel-empty-title">no {state.provider} api key</div>
+          <div className="vy-aipanel-empty-sub">
+            stored in macOS keychain · paste once, never again.
+          </div>
+          <button
+            type="button"
+            className="vy-aipanel-empty-btn"
+            onClick={() => void invoke("open_settings_window")}
+          >
+            open settings →
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (state.kind === "error") {
     return (
       <div className="vy-aipanel" data-side={side} style={{ width }}>
         <div className="vy-aipanel-head">
@@ -47,7 +110,7 @@ export function AiPanel({ width = 360, side = "right" }: AiPanelProps) {
         <div className="vy-aipanel-body">
           <div className="msg ai">
             <div className="bubble" style={{ color: "var(--accent-danger)" }}>
-              {initError}
+              {state.message}
             </div>
           </div>
         </div>
@@ -55,9 +118,7 @@ export function AiPanel({ width = 360, side = "right" }: AiPanelProps) {
     );
   }
 
-  if (!chat) return <div className="vy-aipanel" data-side={side} style={{ width }} />;
-
-  return <AiPanelInner chat={chat} side={side} width={width} />;
+  return <AiPanelInner chat={state.chat} side={side} width={width} />;
 }
 
 function AiPanelInner({
@@ -69,7 +130,7 @@ function AiPanelInner({
   side: Side;
   width: number;
 }) {
-  const { messages, sendMessage, status, addToolApprovalResponse } = useChat<AppMessage>({ chat });
+  const { messages, sendMessage, status, stop, addToolApprovalResponse } = useChat<AppMessage>({ chat });
   const [text, setText] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -121,11 +182,30 @@ function AiPanelInner({
             if (e.key === "Enter" && text.trim() && !isStreaming) {
               void sendMessage({ text });
               setText("");
+              return;
+            }
+            // Esc while a turn is in flight cancels it without losing
+            // the composer text — handy when a long stream is running
+            // away and you want to refine the question.
+            if (e.key === "Escape" && isStreaming) {
+              e.preventDefault();
+              stop();
             }
           }}
           style={{ flex: 1 }}
         />
-        <Icon name="send" size={13} style={{ color: "var(--accent-primary)" }} />
+        {isStreaming ? (
+          <button
+            type="button"
+            className="vy-aipanel-stop"
+            onClick={() => stop()}
+            title="Stop generating (esc)"
+          >
+            <Icon name="stop" size={11} />
+          </button>
+        ) : (
+          <Icon name="send" size={13} style={{ color: "var(--accent-primary)" }} />
+        )}
       </div>
     </div>
   );
