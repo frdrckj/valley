@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Btn } from "@/components/Btn";
 import { Kbd } from "@/components/Kbd";
 import { useLayout, type Side } from "@/lib/layout";
@@ -9,6 +9,7 @@ import {
 } from "@/modules/shortcuts/shortcuts";
 import { THEMES } from "@/modules/theme/themes";
 import type { ThemeSetting } from "@/lib/settings";
+import { keyring, type Provider } from "@/modules/ai/lib/keyring";
 
 const CATEGORIES = [
   "Appearance",
@@ -187,6 +188,18 @@ function AiPanel() {
   return (
     <Section label="AI · valley">
       <Row
+        title="Anthropic API key"
+        sub="stored in macOS keychain · sk-ant-… · empty to clear"
+      >
+        <ApiKeyField provider="anthropic" />
+      </Row>
+      <Row
+        title="OpenAI API key"
+        sub="stored in macOS keychain · sk-… · empty to clear"
+      >
+        <ApiKeyField provider="openai" />
+      </Row>
+      <Row
         title="Auto-approve read tools"
         sub="file_read, list_dir, grep — no approval prompt"
       >
@@ -322,6 +335,76 @@ function Switch({ on, onChange }: { on: boolean; onChange?: () => void }) {
       aria-checked={on}
     >
       <div className="knob" />
+    </div>
+  );
+}
+
+/**
+ * Password input bound to the macOS keychain via the keyring shim.
+ * Loads the current value (masked) on mount, debounces writes 400 ms
+ * so we don't write a keychain entry on every keystroke, and shows a
+ * tiny status pill (`saved` / `cleared` / `error`).
+ */
+function ApiKeyField({ provider }: { provider: Provider }) {
+  const [value, setValue] = useState("");
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">(
+    "idle",
+  );
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initial = useRef(true);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const existing = await keyring.get(provider);
+        if (existing) setValue(existing);
+      } catch {
+        /* keychain unavailable; show empty input */
+      } finally {
+        initial.current = false;
+      }
+    })();
+  }, [provider]);
+
+  function onChange(next: string) {
+    setValue(next);
+    if (initial.current) return;
+    setStatus("saving");
+    setErrorMsg(null);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        if (next.trim() === "") {
+          await keyring.remove(provider);
+        } else {
+          await keyring.set(provider, next.trim());
+        }
+        setStatus("saved");
+        setTimeout(() => setStatus("idle"), 1200);
+      } catch (e) {
+        setStatus("error");
+        setErrorMsg(e instanceof Error ? e.message : String(e));
+      }
+    }, 400);
+  }
+
+  return (
+    <div className="api-key-row">
+      <input
+        className="input"
+        type="password"
+        autoComplete="off"
+        spellCheck={false}
+        placeholder={provider === "anthropic" ? "sk-ant-…" : "sk-…"}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+      <span className={`api-key-status is-${status}`} title={errorMsg ?? ""}>
+        {status === "saving" && "saving…"}
+        {status === "saved" && "✓ saved"}
+        {status === "error" && "error"}
+      </span>
     </div>
   );
 }

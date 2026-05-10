@@ -639,6 +639,27 @@
   padding: 36px 32px 24px;
   overflow: auto;
 }
+/* API key field in Settings → AI · valley. */
+.api-key-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.api-key-row .input {
+  width: 280px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.api-key-status {
+  font: 500 11px var(--font-mono);
+  min-width: 56px;
+  text-align: right;
+}
+.api-key-status.is-idle  { color: transparent; }
+.api-key-status.is-saving { color: var(--text-muted); }
+.api-key-status.is-saved  { color: var(--accent-success); }
+.api-key-status.is-error  { color: var(--accent-danger); }
+
 /* Font-size slider row in Appearance > Terminal. */
 .font-size-row {
   display: inline-flex;
