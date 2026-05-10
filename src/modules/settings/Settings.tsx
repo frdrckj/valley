@@ -7,6 +7,8 @@ import {
   SHORTCUTS,
   SHORTCUT_GROUPS,
 } from "@/modules/shortcuts/shortcuts";
+import { THEMES } from "@/modules/theme/themes";
+import type { ThemeSetting } from "@/lib/settings";
 
 const CATEGORIES = [
   "Appearance",
@@ -81,27 +83,25 @@ function AppearancePanel() {
       </Section>
 
       <Section label="THEME">
-        <Row title="Color theme" sub="Gruvbox is the only canonical palette.">
-          <div className="seg">
-            <span
-              className={`seg-i${settings.theme === "dark" ? " on" : ""}`}
-              onClick={() => void patchSettings({ theme: "dark" })}
-            >
-              dark
-            </span>
-            <span
-              className={`seg-i${settings.theme === "light" ? " on" : ""}`}
-              onClick={() => void patchSettings({ theme: "light" })}
-            >
-              light hard
-            </span>
-            <span
-              className={`seg-i${settings.theme === "auto" ? " on" : ""}`}
-              onClick={() => void patchSettings({ theme: "auto" })}
-            >
-              follow system
-            </span>
-          </div>
+        <Row
+          title="Color palette"
+          sub="applied to terminal + chrome together"
+        >
+          <select
+            className="select"
+            value={settings.theme}
+            onChange={(e) =>
+              void patchSettings({ theme: e.target.value as ThemeSetting })
+            }
+            style={{ width: 200 }}
+          >
+            <option value="auto">follow system</option>
+            {THEMES.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.label}
+              </option>
+            ))}
+          </select>
         </Row>
         <Row
           title="Window vibrancy"

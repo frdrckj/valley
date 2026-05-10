@@ -18,6 +18,7 @@ import {
 } from "@/lib/screen";
 import { useLayout, type Side } from "@/lib/layout";
 import { hydrateSettings, useSettings, patchSettings } from "@/lib/settings";
+import { applyChromeTheme, getTheme, resolveTheme } from "@/modules/theme/themes";
 import { setLive } from "@/lib/workspace";
 import { native } from "@/lib/native";
 import { useGlobalShortcuts } from "@/modules/shortcuts/useGlobalShortcuts";
@@ -25,7 +26,9 @@ import { ShortcutsDialog } from "@/modules/shortcuts/ShortcutsDialog";
 import {
   closePane,
   findActive,
+  focusNeighbor,
   splitPane,
+  type Direction,
 } from "@/modules/terminal/lib/splits";
 import { SearchBar } from "@/modules/terminal/SearchBar";
 
@@ -44,6 +47,15 @@ function splitActivePane(dir: "v" | "h") {
   if (!active) return;
   const newSessionId = `pty-${tab.id}-${Date.now().toString(36)}`;
   s.setPanes(tab.id, splitPane(tab.panes, active.sessionId, dir, newSessionId));
+}
+
+/** Move pane focus in the active tab via the splits.ts helper. */
+function focusNeighborInActiveTab(direction: Direction) {
+  const s = useTabs.getState();
+  if (!s.activeId) return;
+  const tab = s.tabs.find((t) => t.id === s.activeId);
+  if (!tab || tab.kind !== "terminal") return;
+  s.setPanes(tab.id, focusNeighbor(tab.panes, direction));
 }
 
 export default function App() {
@@ -100,9 +112,7 @@ export default function App() {
   }, [valleyMd]);
 
   useEffect(() => {
-    // "auto" falls back to dark until media-query handling is added (TODO).
-    const resolved = settings.theme === "auto" ? "dark" : settings.theme;
-    document.documentElement.dataset.theme = resolved;
+    applyChromeTheme(getTheme(resolveTheme(settings.theme)));
   }, [settings.theme]);
 
   useGlobalShortcuts({
@@ -138,6 +148,10 @@ export default function App() {
     },
     "split.vertical": () => splitActivePane("v"),
     "split.horizontal": () => splitActivePane("h"),
+    "pane.focus.left": () => focusNeighborInActiveTab("left"),
+    "pane.focus.right": () => focusNeighborInActiveTab("right"),
+    "pane.focus.up": () => focusNeighborInActiveTab("up"),
+    "pane.focus.down": () => focusNeighborInActiveTab("down"),
     "tab.next": () => {
       const s = useTabs.getState();
       if (s.tabs.length === 0 || s.activeId === null) return;
@@ -173,7 +187,9 @@ export default function App() {
     writeQuery("screen", s);
   }
   function pickTheme(t: "dark" | "light") {
-    void patchSettings({ theme: t });
+    void patchSettings({
+      theme: t === "light" ? "gruvbox-light-hard" : "gruvbox-material-dark",
+    });
   }
 
   // Explorer + AI panel are both hidden by default — minimalist by design.
@@ -230,7 +246,11 @@ export default function App() {
       {devUI && (
         <ScreenSwitcher
           screen={screen}
-          theme={settings.theme === "auto" ? "dark" : settings.theme}
+          theme={
+            resolveTheme(settings.theme) === "gruvbox-light-hard"
+              ? "light"
+              : "dark"
+          }
           onScreen={pickScreen}
           onTheme={pickTheme}
         />

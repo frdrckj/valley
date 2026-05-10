@@ -1,10 +1,13 @@
 import { Store } from "@tauri-apps/plugin-store";
 import { useSyncExternalStore } from "react";
+import type { ThemeId } from "@/modules/theme/themes";
 
 const FILE = "valley-settings.json";
 
+export type ThemeSetting = "auto" | ThemeId;
+
 export interface Settings {
-  theme: "dark" | "light" | "auto";
+  theme: ThemeSetting;
   vibrancy: boolean;
   ligatures: boolean;
   defaultProvider: "openai" | "anthropic";
@@ -14,7 +17,7 @@ export interface Settings {
 }
 
 const DEFAULTS: Settings = {
-  theme: "dark",
+  theme: "gruvbox-material-dark",
   vibrancy: true,
   ligatures: false,
   defaultProvider: "anthropic",
@@ -22,6 +25,20 @@ const DEFAULTS: Settings = {
   autoApproveReadTools: true,
   showHiddenFiles: false,
 };
+
+/**
+ * Migrate legacy persisted theme values. Earlier valley builds saved
+ * `"dark" | "light"`; we now save the concrete theme id. Map them so
+ * existing users don't see a surprise reset on first launch after the
+ * upgrade.
+ */
+function migrate(v: Record<string, unknown>): Partial<Settings> {
+  const legacy = v.theme;
+  const out = { ...v } as Partial<Settings>;
+  if (legacy === "dark") out.theme = "gruvbox-material-dark";
+  else if (legacy === "light") out.theme = "gruvbox-light-hard";
+  return out;
+}
 
 let cached: Settings = DEFAULTS;
 let storePromise: Promise<Store> | null = null;
@@ -34,8 +51,8 @@ function getStore() {
 
 export async function hydrateSettings() {
   const store = await getStore();
-  const v = (await store.get<Settings>("settings")) ?? DEFAULTS;
-  cached = { ...DEFAULTS, ...v };
+  const raw = (await store.get<Partial<Settings>>("settings")) ?? {};
+  cached = { ...DEFAULTS, ...migrate(raw) };
   listeners.forEach((l) => l());
 }
 

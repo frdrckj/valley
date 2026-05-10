@@ -19,6 +19,10 @@ export type ShortcutId =
   | "tab.selectByIndex"
   | "split.vertical"
   | "split.horizontal"
+  | "pane.focus.left"
+  | "pane.focus.right"
+  | "pane.focus.up"
+  | "pane.focus.down"
   | "search.focus"
   | "ai.toggle"
   | "ai.askSelection"
@@ -128,6 +132,34 @@ export const SHORTCUTS: Shortcut[] = [
     keys: ["⌘", "⇧", "D"],
     group: "Splits",
     match: (e) => isMod(e) && e.shiftKey && e.key.toLowerCase() === "d",
+  },
+  {
+    id: "pane.focus.left",
+    label: "Focus left pane",
+    keys: ["⌘", "⌥", "←"],
+    group: "Splits",
+    match: (e) => isMod(e) && e.altKey && e.key === "ArrowLeft",
+  },
+  {
+    id: "pane.focus.right",
+    label: "Focus right pane",
+    keys: ["⌘", "⌥", "→"],
+    group: "Splits",
+    match: (e) => isMod(e) && e.altKey && e.key === "ArrowRight",
+  },
+  {
+    id: "pane.focus.up",
+    label: "Focus pane above",
+    keys: ["⌘", "⌥", "↑"],
+    group: "Splits",
+    match: (e) => isMod(e) && e.altKey && e.key === "ArrowUp",
+  },
+  {
+    id: "pane.focus.down",
+    label: "Focus pane below",
+    keys: ["⌘", "⌥", "↓"],
+    group: "Splits",
+    match: (e) => isMod(e) && e.altKey && e.key === "ArrowDown",
   },
   {
     id: "search.focus",

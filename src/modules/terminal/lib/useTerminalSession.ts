@@ -6,6 +6,8 @@ import { WebLinksAddon } from "@xterm/addon-web-links";
 import { openPty, type PtyBridge } from "./pty-bridge";
 import { attachOscHandlers } from "./osc-handlers";
 import { useTabs } from "@/modules/tabs/useTabs";
+import { getSettingsSnapshot, useSettings } from "@/lib/settings";
+import { getTheme, resolveTheme } from "@/modules/theme/themes";
 
 import "@xterm/xterm/css/xterm.css";
 
@@ -35,12 +37,21 @@ export function useTerminalSession(opts: {
   cwd?: string;
 }): UseTerminalSession {
   const [cwd, setCwd] = useState<string | null>(opts.cwd ?? null);
+  const themeSetting = useSettings().theme;
   const termRef = useRef<XTerm | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
   const bridgeRef = useRef<PtyBridge | null>(null);
   const oscDisposerRef = useRef<(() => void) | null>(null);
   const tailRef = useRef<string[]>([]);
   const searchRef = useRef<SearchAddon | null>(null);
+
+  // Live theme swap — when settings.theme changes, push the new xterm
+  // palette into the existing terminal instance (no remount needed).
+  useEffect(() => {
+    const term = termRef.current;
+    if (!term) return;
+    term.options.theme = getTheme(resolveTheme(themeSetting)).xterm;
+  }, [themeSetting]);
 
   function attach(host: HTMLDivElement) {
     // Sync guard. React 19 StrictMode mounts → unmounts → mounts again in dev;
@@ -64,7 +75,7 @@ export function useTerminalSession(opts: {
       cursorBlink: true,
       cursorStyle: "block",
       allowProposedApi: true,
-      theme: gruvboxDarkXTerm,
+      theme: getTheme(resolveTheme(getSettingsSnapshot().theme)).xterm,
       scrollback: 5000,
     });
     const fit = new FitAddon();
@@ -141,29 +152,5 @@ export function useTerminalSession(opts: {
   return { attach, fit, cwd, getTail, getSearch };
 }
 
-// Gruvbox Material Medium Dark — mirrors the user's alacritty theme
-// (~/.config/alacritty/themes/themes/gruvbox_material_medium_dark.toml).
-// Softer accents than canonical Gruvbox, warmer foreground.
-const gruvboxDarkXTerm = {
-  background: "#282828",
-  foreground: "#d4be98",
-  cursor: "#d8a657",
-  cursorAccent: "#282828",
-  selectionBackground: "rgba(212,190,152,0.18)",
-  black: "#3c3836",
-  red: "#ea6962",
-  green: "#a9b665",
-  yellow: "#d8a657",
-  blue: "#7daea3",
-  magenta: "#d3869b",
-  cyan: "#89b482",
-  white: "#d4be98",
-  brightBlack: "#3c3836",
-  brightRed: "#ea6962",
-  brightGreen: "#a9b665",
-  brightYellow: "#d8a657",
-  brightBlue: "#7daea3",
-  brightMagenta: "#d3869b",
-  brightCyan: "#89b482",
-  brightWhite: "#d4be98",
-};
+// Theme palettes live in @/modules/theme/themes — applied at construction
+// via getSettingsSnapshot() and re-applied reactively in Terminal.tsx.
