@@ -26,6 +26,7 @@ import { setLive } from "@/lib/workspace";
 import { native } from "@/lib/native";
 import { useGlobalShortcuts } from "@/modules/shortcuts/useGlobalShortcuts";
 import { ShortcutsDialog } from "@/modules/shortcuts/ShortcutsDialog";
+import { Welcome } from "@/modules/welcome/Welcome";
 import {
   closePane,
   findActive,
@@ -378,6 +379,8 @@ export default function App() {
         open={shortcutsOpen}
         onClose={() => setShortcutsOpen(false)}
       />
+
+      <Welcome />
 
       {devUI && (
         <ScreenSwitcher

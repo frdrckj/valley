@@ -16,6 +16,8 @@ export interface Settings {
   defaultModel: string;
   autoApproveReadTools: boolean;
   showHiddenFiles: boolean;
+  /** Set to true once the user has dismissed the first-run welcome card. */
+  onboardingDone: boolean;
 }
 
 const DEFAULTS: Settings = {
@@ -27,6 +29,7 @@ const DEFAULTS: Settings = {
   defaultModel: "claude-haiku-4-5-20251001",
   autoApproveReadTools: true,
   showHiddenFiles: false,
+  onboardingDone: false,
 };
 
 /**

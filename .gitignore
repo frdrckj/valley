@@ -23,3 +23,6 @@ releases/
 
 # runtime DBs / generated artifacts
 ruvector.db
+
+# local Claude Code settings — per-machine, never commit
+.claude/
