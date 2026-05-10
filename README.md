@@ -15,7 +15,8 @@ A lightweight, AI-aware desktop terminal for macOS — built on Tauri 2 + Rust +
 
 Built around the things a daily-driver terminal should make trivial:
 
-- **Block-status rails** — every command run gets a green / red side bar; ⌘⇧↑/↓ jumps between prompts; ⌘⇧C copies a block's output.
+- **Block-status rails** — every command run gets a green / red side bar; ⌘⇧↑/↓ jumps between prompts.
+- **⌘⇧C copies the last command's output** — straight to clipboard, ready to paste into a chat, issue, or PR. Hover any rail in the gutter to see exit code + duration.
 - **Live cwd everywhere** — sidebar follows your `cd`, status bar shows the git branch, file explorer scopes to the active terminal's directory. Works inside tmux via OSC passthrough.
 - **Cmd+P omnibar** — fuzzy switcher across open tabs, recent files, files in the active cwd, modified files in the repo, plus a 15-action command palette.
 - **Embedded editor** — CodeMirror 6 with gruvbox / tokyo-night / nord themes mirroring the terminal palette. ⌘S writes through a Vite plugin that mutes HMR for self-saves. Right-click → "Open in $EDITOR" hands off to nvim / VS Code / whatever you set.
@@ -78,10 +79,6 @@ Always pnpm — never npm.
 ## Stack
 
 Tauri 2 (Rust) · React 19 · TypeScript · xterm.js 6 · CodeMirror 6 · Vercel AI SDK 6 · libgit2 (vendored) · zustand · Vite 7
-
-## Acknowledgement
-
-Terminal lifecycle code in `src/modules/terminal/lib/` is adapted from [terax-ai](https://github.com/crynta/terax-ai) by crynta, used under Apache License 2.0. See [NOTICE](./NOTICE).
 
 ## License
 
