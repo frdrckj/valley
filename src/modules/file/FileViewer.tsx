@@ -19,6 +19,10 @@ export function FileViewer({ path }: FileViewerProps) {
     let cancelled = false;
     setContent(null);
     setError(null);
+    if (!path) {
+      setError("no file path — this tab couldn't be restored");
+      return;
+    }
     native.fs
       .readFile(path)
       .then((c) => {

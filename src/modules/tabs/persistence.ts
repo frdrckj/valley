@@ -73,6 +73,11 @@ export async function hydrateTabs(): Promise<boolean> {
   } catch {
     return false;
   }
+  // Drop file tabs missing a `path`. Older persisted data didn't carry
+  // it; restoring those tabs leads to ENOENT on first read.
+  persisted = persisted.filter(
+    (p) => p.kind !== "file" || (typeof p.path === "string" && p.path.length > 0),
+  );
   if (persisted.length === 0) return false;
 
   const restored: Tab[] = persisted.map((p) => ({
