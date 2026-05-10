@@ -106,7 +106,9 @@ export function useTerminalSession({
   onDetectedLocalUrl,
   gutter,
 }: UseTerminalSessionOptions): UseTerminalSession {
-  const themeSetting = useSettings().theme;
+  const settings = useSettings();
+  const themeSetting = settings.theme;
+  const fontSizeSetting = settings.terminalFontSize;
 
   const onCwdRef = useRef(onCwd);
   const onExitRef = useRef(onExit);
@@ -138,6 +140,17 @@ export function useTerminalSession({
     });
   }, [themeSetting, sessionId]);
 
+  // Live font-size swap — re-fits xterm to the new cell metrics, then
+  // dispatches a SIGWINCH-equivalent so the shell sees the new size.
+  useEffect(() => {
+    const term = termRef.current;
+    const fit = fitRef.current;
+    if (!term || !fit) return;
+    term.options.fontSize = fontSizeSetting;
+    fit.fit();
+    void ptyRef.current?.resize(term.cols, term.rows);
+  }, [fontSizeSetting]);
+
   useEffect(() => {
     let disposed = false;
     const cleanups: Array<() => void> = [];
@@ -145,8 +158,9 @@ export function useTerminalSession({
     void (async () => {
       // Wait for the terminal font so xterm's canvas renderer measures
       // correctly. If absent, xterm falls back per family stack.
+      const fontSize = getSettingsSnapshot().terminalFontSize ?? FONT_SIZE;
       try {
-        await document.fonts.load(`${FONT_SIZE}px "MesloLGS Nerd Font Mono"`);
+        await document.fonts.load(`${fontSize}px "MesloLGS Nerd Font Mono"`);
       } catch {
         /* font not available — fall back to JetBrains/SF Mono */
       }
@@ -154,7 +168,7 @@ export function useTerminalSession({
 
       const term = new XTerm({
         fontFamily: FONT_FAMILY,
-        fontSize: FONT_SIZE,
+        fontSize,
         lineHeight: 1.05,
         theme: getTheme(resolveTheme(getSettingsSnapshot().theme)).xterm,
         cursorBlink: true,

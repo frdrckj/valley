@@ -590,11 +590,25 @@
   flex: 1;
   min-height: 0;
   background: var(--surface);
+  position: relative;
+}
+/* Reserve space for the macOS overlay traffic lights so SETTINGS heading
+   and the first category aren't half-occluded. The bar itself is also a
+   data-tauri-drag-region, replacing the normally-visible title bar. */
+.vy-settings-titlebar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  z-index: 5;
+  background: transparent;
+  cursor: default;
 }
 .vy-settings .cats {
   width: 220px;
   flex: none;
-  padding: 16px 0;
+  padding: 36px 0 16px;
   border-right: 1px solid var(--border-subtle);
   background: var(--surface-base);
 }
@@ -622,8 +636,24 @@
 }
 .vy-settings .panel {
   flex: 1;
-  padding: 24px 32px;
+  padding: 36px 32px 24px;
   overflow: auto;
+}
+/* Font-size slider row in Appearance > Terminal. */
+.font-size-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.font-size-row input[type="range"] {
+  width: 160px;
+  accent-color: var(--accent-primary);
+}
+.font-size-val {
+  font: 500 12px var(--font-mono);
+  color: var(--text-strong);
+  min-width: 40px;
+  text-align: right;
 }
 .vy-settings .panel-head {
   display: flex;

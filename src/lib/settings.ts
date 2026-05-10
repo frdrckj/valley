@@ -10,6 +10,8 @@ export interface Settings {
   theme: ThemeSetting;
   vibrancy: boolean;
   ligatures: boolean;
+  /** Terminal font size in pixels. xterm + the editor both follow it. */
+  terminalFontSize: number;
   defaultProvider: "openai" | "anthropic";
   defaultModel: string;
   autoApproveReadTools: boolean;
@@ -20,6 +22,7 @@ const DEFAULTS: Settings = {
   theme: "gruvbox-material-dark",
   vibrancy: true,
   ligatures: false,
+  terminalFontSize: 17,
   defaultProvider: "anthropic",
   defaultModel: "claude-haiku-4-5-20251001",
   autoApproveReadTools: true,

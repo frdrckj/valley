@@ -25,6 +25,9 @@ export function Settings() {
 
   return (
     <div className="vy-settings">
+      {/* macOS overlay traffic-light gutter — also a drag region so the
+          user can move the window despite hidden_title=true. */}
+      <div className="vy-settings-titlebar" data-tauri-drag-region />
       <div className="cats">
         <div className="cats-head">SETTINGS</div>
         {CATEGORIES.map((c) => (
@@ -119,6 +122,29 @@ function AppearancePanel() {
               void patchSettings({ ligatures: !settings.ligatures })
             }
           />
+        </Row>
+      </Section>
+
+      <Section label="TERMINAL">
+        <Row
+          title="Font size"
+          sub="xterm cell size · 10–24 px · live-applies to all open panes"
+        >
+          <div className="font-size-row">
+            <input
+              type="range"
+              min={10}
+              max={24}
+              step={1}
+              value={settings.terminalFontSize}
+              onChange={(e) =>
+                void patchSettings({
+                  terminalFontSize: Number.parseInt(e.target.value, 10),
+                })
+              }
+            />
+            <span className="font-size-val">{settings.terminalFontSize}px</span>
+          </div>
         </Row>
       </Section>
     </>
