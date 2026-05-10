@@ -141,6 +141,28 @@ function Branch({ entry, depth, byPath, toggle, gitStatus }: BranchProps) {
     }
   }
 
+  /** Spawn a fresh terminal tab in the file's directory and run
+   *  `$EDITOR <basename>` (defaulting to nvim if EDITOR isn't set).
+   *  Uses an 800ms delay so the spawned shell has time to print its
+   *  first prompt before we type the command — without this the bytes
+   *  arrive before the shell is ready and get dropped or mangled. */
+  function openInEditor() {
+    setMenuPos(null);
+    const dir = entry.path.replace(/\/[^/]+$/, "") || "/";
+    const file = entry.name;
+    const tabId = useTabs.getState().open({
+      kind: "terminal",
+      label: file,
+      cwd: dir,
+    });
+    setTimeout(() => {
+      void native.pty.write(
+        `pty-${tabId}`,
+        `\${EDITOR:-nvim} ${shellQuote(file)}\r`,
+      );
+    }, 800);
+  }
+
   function onDoubleClick() {
     const sessionId = activeSessionId();
     if (!sessionId) return;
@@ -199,6 +221,7 @@ function Branch({ entry, depth, byPath, toggle, gitStatus }: BranchProps) {
           x={menuPos.x}
           y={menuPos.y}
           onDiff={openDiffTab}
+          onOpenInEditor={openInEditor}
           onClose={() => setMenuPos(null)}
         />
       )}
@@ -222,17 +245,30 @@ interface ContextMenuProps {
   x: number;
   y: number;
   onDiff: () => void;
+  onOpenInEditor: () => void;
   onClose: () => void;
   ref: React.RefObject<HTMLDivElement | null>;
 }
 
-const ContextMenu = function ContextMenu({ x, y, onDiff, ref }: ContextMenuProps) {
+const ContextMenu = function ContextMenu({
+  x,
+  y,
+  onDiff,
+  onOpenInEditor,
+  ref,
+}: ContextMenuProps) {
   return (
     <div
       ref={ref}
       className="vy-context-menu"
       style={{ position: "fixed", left: x, top: y, zIndex: 100 }}
     >
+      <button
+        className="vy-context-menu-item"
+        onMouseDown={(e) => { e.preventDefault(); onOpenInEditor(); }}
+      >
+        Open in $EDITOR
+      </button>
       <button
         className="vy-context-menu-item"
         onMouseDown={(e) => { e.preventDefault(); onDiff(); }}

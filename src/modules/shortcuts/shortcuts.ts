@@ -26,6 +26,7 @@ export type ShortcutId =
   | "search.focus"
   | "prompt.prev"
   | "prompt.next"
+  | "block.copy"
   | "ai.toggle"
   | "ai.askSelection"
   | "shortcuts.open"
@@ -192,6 +193,13 @@ export const SHORTCUTS: Shortcut[] = [
     keys: ["⌘", "⇧", "↓"],
     group: "Search",
     match: (e) => isMod(e) && e.shiftKey && e.key === "ArrowDown",
+  },
+  {
+    id: "block.copy",
+    label: "Copy current block output",
+    keys: ["⌘", "⇧", "C"],
+    group: "Search",
+    match: (e) => isMod(e) && e.shiftKey && e.key.toLowerCase() === "c",
   },
   {
     id: "ai.toggle",

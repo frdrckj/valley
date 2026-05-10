@@ -1,6 +1,27 @@
 import type { Terminal as XTerm } from "@xterm/xterm";
 import type { Block, BlockTracker } from "./blocks";
 
+/** Pretty-print a duration in ms. <1s → "234ms", <60s → "2.3s",
+ *  <60min → "1m32s", else "Xm". Used for block hover tooltips. */
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${Math.round(ms)}ms`;
+  if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`;
+  const minutes = Math.floor(ms / 60_000);
+  const seconds = Math.round((ms % 60_000) / 1000);
+  return seconds > 0 ? `${minutes}m${seconds}s` : `${minutes}m`;
+}
+
+/** Tooltip text for a completed block — exit code + elapsed time. */
+function describeBlock(b: Block): string {
+  const exit = b.exitCode === 0 ? "exit 0" : `exit ${b.exitCode}`;
+  // Prefer C→D timing (actual command runtime); fall back to A→D
+  // when preexec didn't fire (e.g. the user hit Enter on an empty
+  // prompt, or for an interactive program that bypassed C).
+  const start = b.executingAt ?? b.startedAt;
+  const end = b.endedAt ?? Date.now();
+  return `${exit} · ${formatDuration(end - start)}`;
+}
+
 /**
  * DOM-based block-mark renderer.
  *
@@ -110,6 +131,9 @@ export function attachBlockGutter(
     el.style.background = colorFor(block);
     el.classList.toggle("is-fail", block.exitCode !== 0);
     el.classList.toggle("is-ok", block.exitCode === 0);
+    // Native hover tooltip — `title` plays nicely with macOS overlay
+    // delays and survives across xterm scroll without our own DOM work.
+    el.title = describeBlock(block);
     return el;
   }
 

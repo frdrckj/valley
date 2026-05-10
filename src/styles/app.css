@@ -1151,9 +1151,15 @@
      The class only modifies opacity so failed runs jump out more. */
   border-radius: 1px;
   transition: opacity var(--dur-fast) var(--ease-standard);
+  /* Marks live in the left margin (outside the xterm canvas), so
+     enabling pointer-events for the native title-tooltip doesn't
+     interfere with terminal selection or scroll. */
+  pointer-events: auto;
+  cursor: help;
 }
 .vy-block-gutter-mark.is-ok   { opacity: 0.55; }
 .vy-block-gutter-mark.is-fail { opacity: 0.95; }
+.vy-block-gutter-mark:hover   { opacity: 1; }
 
 /* ----- Git status badges in file tree ----- */
 .tree-row {

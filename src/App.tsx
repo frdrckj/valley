@@ -65,6 +65,49 @@ function focusNeighborInActiveTab(direction: Direction) {
   s.setPanes(tab.id, focusNeighbor(tab.panes, direction));
 }
 
+/** Copy the most-recent completed command's output (the block from its
+ *  prompt-A marker through the next prompt-A) to the clipboard. No-op
+ *  if no command has finished yet. */
+function copyCurrentBlock() {
+  const s = useTabs.getState();
+  if (!s.activeId) return;
+  const tab = s.tabs.find((t) => t.id === s.activeId);
+  if (!tab || tab.kind !== "terminal") return;
+  const active = findActive(tab.panes);
+  if (!active) return;
+  const tracker = getBlockTrackerFor(active.sessionId);
+  const term = getTerminalFor(active.sessionId);
+  if (!tracker || !term) return;
+
+  const blocks = tracker.blocks();
+  // Walk back to the most-recent block that has an exit code.
+  let targetIdx = -1;
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    if (blocks[i]?.exitCode !== null && blocks[i]?.exitCode !== undefined) {
+      targetIdx = i;
+      break;
+    }
+  }
+  const target = targetIdx >= 0 ? blocks[targetIdx] : null;
+  if (!target) return;
+
+  const next = blocks[targetIdx + 1];
+  const startLine = target.startMarker.line;
+  const endLine = next
+    ? next.startMarker.line
+    : term.buffer.active.baseY + term.buffer.active.cursorY + 1;
+
+  const buf = term.buffer.active;
+  const lines: string[] = [];
+  for (let y = startLine; y < endLine; y++) {
+    const line = buf.getLine(y);
+    if (line) lines.push(line.translateToString(true));
+  }
+  while (lines.length && lines[lines.length - 1] === "") lines.pop();
+
+  void navigator.clipboard.writeText(lines.join("\n"));
+}
+
 /** Jump the active terminal pane to the previous / next prompt block.
  *  No-op if the active tab isn't a terminal or no blocks have been
  *  recorded yet (fresh shell that hasn't emitted OSC 133 A). */
@@ -217,6 +260,7 @@ export default function App() {
     "search.focus": () => setSearchOpen((v) => !v),
     "prompt.prev": () => navigatePrompt("prev"),
     "prompt.next": () => navigatePrompt("next"),
+    "block.copy": () => copyCurrentBlock(),
     "ai.toggle": () => setAiPanelOpen((v) => !v),
     "ai.askSelection": () => {
       // For now, treat this as "open the AI omnibar" — closest current behavior
