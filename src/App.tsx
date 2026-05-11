@@ -199,7 +199,7 @@ function navigatePrompt(dir: "prev" | "next") {
 
 export default function App() {
   const [screen, setScreen] = useState<ScreenId>(readScreen());
-  const { sidebar: sidebarSide, ai: aiSide } = useLayout();
+  const { sidebar: sidebarSide, ai: aiSide, aiWidth } = useLayout();
   const settings = useSettings();
   const [valleyMd, setValleyMd] = useState<string | null>(null);
   const omnibar = useOmnibar();
@@ -368,6 +368,7 @@ export default function App() {
     sidebarSide,
     aiSide,
     aiPending,
+    aiWidth,
     explorerRoot,
     explorerHost: activeCwdHost,
   });
@@ -435,6 +436,7 @@ function composeBodyPanes(opts: {
   sidebarSide: Side;
   aiSide: Side;
   aiPending: boolean;
+  aiWidth: number;
   explorerRoot: string;
   explorerHost: string;
 }): { left: ReactNode[]; right: ReactNode[] } {
@@ -455,7 +457,12 @@ function composeBodyPanes(opts: {
   }
   if (opts.showAiPanel) {
     const ai = (
-      <AiPanel key="ai" side={opts.aiSide} withToolCall={opts.aiPending} />
+      <AiPanel
+        key="ai"
+        side={opts.aiSide}
+        width={opts.aiWidth}
+        withToolCall={opts.aiPending}
+      />
     );
     // AI panel hugs the main area when sharing a side.
     if (opts.aiSide === "left") left.push(ai);

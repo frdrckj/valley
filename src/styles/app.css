@@ -436,7 +436,22 @@
   background: var(--surface);
   border-left: 1px solid var(--border-subtle);
   height: 100%;
+  /* anchor for the absolute-positioned resize handle */
+  position: relative;
 }
+/* Drag handle on the AI panel's inner edge. Same pattern as the file
+   explorer — narrow hit zone, faint amber tint on hover. */
+.vy-aipanel-resize {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  z-index: 5;
+  cursor: col-resize;
+}
+.vy-aipanel-resize.right-edge { right: -3px; }
+.vy-aipanel-resize.left-edge  { left: -3px; }
+.vy-aipanel-resize:hover { background: rgba(216, 166, 87, 0.20); }
 .vy-aipanel[data-side="left"] {
   border-left: 0;
   border-right: 1px solid var(--border-subtle);
@@ -512,6 +527,16 @@
 .vy-aipanel-clear:disabled {
   opacity: 0.4;
   cursor: default;
+}
+.vy-aipanel-clear.is-armed {
+  color: var(--surface-base);
+  background: var(--accent-danger);
+  border-color: var(--accent-danger);
+}
+.vy-aipanel-clear.is-armed:hover:not(:disabled) {
+  filter: brightness(1.08);
+  background: var(--accent-danger);
+  color: var(--surface-base);
 }
 
 /* Stop button shown in place of the send icon while the model is

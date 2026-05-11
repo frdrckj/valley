@@ -3,7 +3,7 @@ import type { Chat } from "@ai-sdk/react";
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Icon } from "@/components/Icon";
-import type { Side } from "@/lib/layout";
+import { useLayout, type Side } from "@/lib/layout";
 import { useSettings } from "@/lib/settings";
 import type { AppMessage } from "./lib/transport";
 import { getActiveSession, createSession, hydrateSessions } from "./lib/sessions";
@@ -36,18 +36,33 @@ export function AiPanel({ width = 360, side = "right" }: AiPanelProps) {
   // fresh Chat instance instead of the cached one in chatStore.
   const [resetTick, setResetTick] = useState(0);
   const sessionIdRef = useRef<string | null>(null);
+  // Two-click confirm: first click arms (button text changes), second
+  // within ~3s actually clears. Avoids window.confirm() which can be
+  // suppressed by some Tauri webview configs and isn't styleable.
+  const [armed, setArmed] = useState(false);
+  const armedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   async function handleClearChat() {
     const sid = sessionIdRef.current;
-    if (!sid) return;
-    if (
-      !window.confirm(
-        "clear all messages in this conversation? this can't be undone.",
-      )
-    )
+    if (!sid) {
+      console.warn("[valley.ai] clear: no active session id");
       return;
-    await clearChat(sid);
-    setResetTick((t) => t + 1);
+    }
+    if (!armed) {
+      setArmed(true);
+      if (armedTimerRef.current) clearTimeout(armedTimerRef.current);
+      armedTimerRef.current = setTimeout(() => setArmed(false), 3000);
+      return;
+    }
+    if (armedTimerRef.current) clearTimeout(armedTimerRef.current);
+    setArmed(false);
+    try {
+      await clearChat(sid);
+      setResetTick((t) => t + 1);
+      console.log("[valley.ai] cleared session", sid);
+    } catch (e) {
+      console.error("[valley.ai] clear failed:", e);
+    }
   }
 
   useEffect(() => {
@@ -92,6 +107,7 @@ export function AiPanel({ width = 360, side = "right" }: AiPanelProps) {
   if (state.kind === "needs-key") {
     return (
       <div className="vy-aipanel" data-side={side} style={{ width }}>
+        <AiResizeHandle side={side} />
         <div className="vy-aipanel-head">
           <Icon name="sparkle" size={13} style={{ color: "var(--accent-ai)" }} />
           <span style={{ color: "var(--text-strong)", fontWeight: 500 }}>valley</span>
@@ -121,6 +137,7 @@ export function AiPanel({ width = 360, side = "right" }: AiPanelProps) {
   if (state.kind === "error") {
     return (
       <div className="vy-aipanel" data-side={side} style={{ width }}>
+        <AiResizeHandle side={side} />
         <div className="vy-aipanel-head">
           <Icon name="sparkle" size={13} style={{ color: "var(--accent-ai)" }} />
           <span style={{ color: "var(--text-strong)", fontWeight: 500 }}>valley</span>
@@ -147,6 +164,43 @@ export function AiPanel({ width = 360, side = "right" }: AiPanelProps) {
       side={side}
       width={width}
       onClear={() => void handleClearChat()}
+      clearArmed={armed}
+    />
+  );
+}
+
+/**
+ * Thin drag handle on the inner edge of the AI panel. Dragging it
+ * resizes the panel via useLayout.setAiWidth (which clamps + persists
+ * to localStorage). Inverts the delta when the panel is docked on the
+ * RIGHT — moving the handle leftward should make the panel wider.
+ */
+function AiResizeHandle({ side }: { side: Side }) {
+  const { aiWidth, setAiWidth } = useLayout();
+  function onMouseDown(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startW = aiWidth;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    function onMove(ev: MouseEvent) {
+      const delta = side === "right" ? startX - ev.clientX : ev.clientX - startX;
+      setAiWidth(startW + delta);
+    }
+    function onUp() {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    }
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }
+  return (
+    <div
+      className={`vy-aipanel-resize ${side === "right" ? "left-edge" : "right-edge"}`}
+      onMouseDown={onMouseDown}
     />
   );
 }
@@ -156,11 +210,13 @@ function AiPanelInner({
   side,
   width,
   onClear,
+  clearArmed,
 }: {
   chat: Chat<AppMessage>;
   side: Side;
   width: number;
   onClear: () => void;
+  clearArmed: boolean;
 }) {
   const {
     messages,
@@ -211,18 +267,23 @@ function AiPanelInner({
 
   return (
     <div className="vy-aipanel" data-side={side} style={{ width }}>
+      <AiResizeHandle side={side} />
       <div className="vy-aipanel-head">
         <Icon name="sparkle" size={13} style={{ color: "var(--accent-ai)" }} />
         <span style={{ color: "var(--text-strong)", fontWeight: 500 }}>valley</span>
         <button
           type="button"
-          className="vy-aipanel-clear"
+          className={`vy-aipanel-clear${clearArmed ? " is-armed" : ""}`}
           onClick={onClear}
-          title="Clear conversation"
+          title={
+            clearArmed
+              ? "Click again to confirm — clears all messages"
+              : "Clear conversation"
+          }
           disabled={messages.length === 0}
         >
           <Icon name="x" size={11} />
-          <span>clear</span>
+          <span>{clearArmed ? "confirm?" : "clear"}</span>
         </button>
       </div>
       <div className="vy-aipanel-body">
