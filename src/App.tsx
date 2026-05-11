@@ -20,7 +20,7 @@ import {
   type ScreenId,
 } from "@/lib/screen";
 import { useLayout, type Side } from "@/lib/layout";
-import { hydrateSettings, useSettings, patchSettings } from "@/lib/settings";
+import { hydrateSettings, useSettings, patchSettings, getSettingsSnapshot } from "@/lib/settings";
 import { applyChromeTheme, getTheme, resolveTheme } from "@/modules/theme/themes";
 import { setLive } from "@/lib/workspace";
 import { native } from "@/lib/native";
@@ -152,6 +152,24 @@ function copyCurrentBlock() {
   while (lines.length && lines[lines.length - 1] === "") lines.pop();
 
   void navigator.clipboard.writeText(lines.join("\n"));
+}
+
+const ZOOM_MIN = 10;
+const ZOOM_MAX = 24;
+const ZOOM_DEFAULT = 17;
+
+/** Bump (or reset) the terminal font size. The live-swap effect in
+ *  useTerminalSession picks up settings.terminalFontSize and rescales
+ *  every open xterm in place — no remount, no flicker. */
+function zoomTerminal(delta: number | "reset") {
+  const current =
+    getSettingsSnapshot().terminalFontSize ?? ZOOM_DEFAULT;
+  const next =
+    delta === "reset"
+      ? ZOOM_DEFAULT
+      : Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, current + delta));
+  if (next === current) return;
+  void patchSettings({ terminalFontSize: next });
 }
 
 /** Jump the active terminal pane to the previous / next prompt block.
@@ -307,6 +325,9 @@ export default function App() {
     "prompt.prev": () => navigatePrompt("prev"),
     "prompt.next": () => navigatePrompt("next"),
     "block.copy": () => copyCurrentBlock(),
+    "terminal.zoomIn": () => zoomTerminal(+1),
+    "terminal.zoomOut": () => zoomTerminal(-1),
+    "terminal.zoomReset": () => zoomTerminal("reset"),
     "ai.toggle": () => setAiPanelOpen((v) => !v),
     "ai.askSelection": () => {
       // Capture before opening so the panel can consume on first render.

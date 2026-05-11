@@ -27,6 +27,9 @@ export type ShortcutId =
   | "prompt.prev"
   | "prompt.next"
   | "block.copy"
+  | "terminal.zoomIn"
+  | "terminal.zoomOut"
+  | "terminal.zoomReset"
   | "ai.toggle"
   | "ai.askSelection"
   | "shortcuts.open"
@@ -200,6 +203,31 @@ export const SHORTCUTS: Shortcut[] = [
     keys: ["⌘", "⇧", "C"],
     group: "Search",
     match: (e) => isMod(e) && e.shiftKey && e.key.toLowerCase() === "c",
+  },
+  {
+    id: "terminal.zoomIn",
+    label: "Increase terminal font size",
+    keys: ["⌘", "+"],
+    group: "View",
+    // Match both the unshifted "=" key (⌘=) and the shifted "+" — most
+    // keyboards put + on the = key, so users hit either.
+    match: (e) =>
+      isMod(e) && (e.key === "=" || e.key === "+"),
+  },
+  {
+    id: "terminal.zoomOut",
+    label: "Decrease terminal font size",
+    keys: ["⌘", "-"],
+    group: "View",
+    match: (e) =>
+      isMod(e) && (e.key === "-" || e.key === "_"),
+  },
+  {
+    id: "terminal.zoomReset",
+    label: "Reset terminal font size",
+    keys: ["⌘", "0"],
+    group: "View",
+    match: (e) => isMod(e) && e.key === "0",
   },
   {
     id: "ai.toggle",
