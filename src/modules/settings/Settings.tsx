@@ -15,6 +15,7 @@ const CATEGORIES = [
   "Appearance",
   "Keymap",
   "AI · valley",
+  "Snippets",
   "Privacy",
   "About",
 ] as const;
@@ -50,6 +51,7 @@ export function Settings() {
         {active === "Appearance" && <AppearancePanel />}
         {active === "Keymap" && <KeymapPanel />}
         {active === "AI · valley" && <AiPanel />}
+        {active === "Snippets" && <SnippetsPanel />}
         {active === "Privacy" && <PrivacyPanel />}
         {active === "About" && <AboutPanel />}
       </div>
@@ -238,6 +240,50 @@ function AiPanel() {
           style={{ width: 240 }}
           value={settings.defaultModel}
           onChange={(e) => void patchSettings({ defaultModel: e.target.value })}
+        />
+      </Row>
+    </Section>
+  );
+}
+
+function SnippetsPanel() {
+  const settings = useSettings();
+  return (
+    <Section label="SNIPPETS">
+      <Row title="Attacker IP (LHOST)" sub="fills $LHOST in payloads · e.g. 10.0.0.1">
+        <input
+          className="input"
+          style={{ width: 200 }}
+          value={settings.snippetLhost}
+          placeholder="e.g. 10.0.0.1"
+          onChange={(e) => void patchSettings({ snippetLhost: e.target.value })}
+        />
+      </Row>
+      <Row title="Attacker port (LPORT)" sub="fills $LPORT · default 4444">
+        <input
+          className="input"
+          style={{ width: 120 }}
+          value={settings.snippetLport}
+          placeholder="4444"
+          onChange={(e) => void patchSettings({ snippetLport: e.target.value })}
+        />
+      </Row>
+      <Row title="Target host (TARGET)" sub="fills $TARGET · IP or hostname">
+        <input
+          className="input"
+          style={{ width: 200 }}
+          value={settings.snippetTarget}
+          placeholder="e.g. 192.168.1.1"
+          onChange={(e) => void patchSettings({ snippetTarget: e.target.value })}
+        />
+      </Row>
+      <Row title="Target port (PORT)" sub="fills $PORT · e.g. 80 or 443">
+        <input
+          className="input"
+          style={{ width: 120 }}
+          value={settings.snippetPort}
+          placeholder="e.g. 80"
+          onChange={(e) => void patchSettings({ snippetPort: e.target.value })}
         />
       </Row>
     </Section>

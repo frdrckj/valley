@@ -350,6 +350,7 @@ export default function App() {
     },
     "sidebar.toggle": () => setExplorerOpen((v) => !v),
     "decode.open": () => useDecodePanel.getState().toggle(),
+    "snippets.open": () => useSnippetPalette.getState().toggle(),
   });
 
   function pickScreen(s: ScreenId) {
@@ -422,6 +423,8 @@ export default function App() {
       <DecodePanel />
 
       <EngagementDialog />
+
+      <SnippetPalette />
 
       {devUI && (
         <ScreenSwitcher

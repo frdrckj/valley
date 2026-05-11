@@ -18,6 +18,11 @@ export interface Settings {
   showHiddenFiles: boolean;
   /** Set to true once the user has dismissed the first-run welcome card. */
   onboardingDone: boolean;
+  /** Snippet palette placeholder defaults */
+  snippetLhost: string;
+  snippetLport: string;
+  snippetTarget: string;
+  snippetPort: string;
 }
 
 const DEFAULTS: Settings = {
@@ -30,6 +35,10 @@ const DEFAULTS: Settings = {
   autoApproveReadTools: true,
   showHiddenFiles: false,
   onboardingDone: false,
+  snippetLhost: "",
+  snippetLport: "4444",
+  snippetTarget: "",
+  snippetPort: "",
 };
 
 /**

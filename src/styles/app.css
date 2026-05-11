@@ -1840,3 +1840,244 @@
   color: var(--text-muted);
   text-align: center;
 }
+
+/* ----- Decode Panel ----- */
+.vy-decode-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 80px;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  animation: vy-decode-fade 120ms var(--ease-standard) both;
+}
+@keyframes vy-decode-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.vy-decode-panel {
+  width: 560px;
+  max-width: 92vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+.vy-decode-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.vy-decode-title {
+  font: 500 13px var(--font-mono);
+  color: var(--text-strong);
+}
+.vy-decode-close {
+  font: 400 18px var(--font-mono);
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 2px;
+}
+.vy-decode-close:hover { color: var(--text-primary); }
+.vy-decode-input-wrap {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.vy-decode-textarea {
+  width: 100%;
+  min-height: 54px;
+  max-height: 108px;
+  resize: vertical;
+  font: 400 12px var(--font-mono);
+  color: var(--text-primary);
+  background: var(--surface-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 8px 10px;
+  box-sizing: border-box;
+  outline: none;
+}
+.vy-decode-textarea:focus {
+  border-color: var(--accent-primary);
+}
+.vy-decode-results {
+  overflow-y: auto;
+  padding: 8px 0 4px;
+}
+.vy-decode-result {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.vy-decode-result:last-child { border-bottom: 0; }
+.vy-decode-result-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.vy-decode-result-label {
+  font: 600 11.5px var(--font-mono);
+  color: var(--text-strong);
+}
+.vy-decode-result-meta {
+  font: 400 10.5px var(--font-mono);
+  color: var(--text-muted);
+  flex: 1;
+}
+.vy-decode-copy-btn {
+  font: 400 10.5px var(--font-mono);
+  color: var(--accent-primary);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  padding: 0;
+  margin-left: auto;
+}
+.vy-decode-copy-btn:hover { color: var(--text-strong); }
+.vy-decode-result-pre {
+  margin: 0;
+  font: 400 12px var(--font-mono);
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 160px;
+  overflow-y: auto;
+}
+.vy-decode-empty {
+  padding: 16px 14px;
+  font: 400 12px var(--font-mono);
+  color: var(--text-muted);
+}
+
+/* ----- Snippet Palette (⌘⇧K) ----- */
+.vy-snippet-palette-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 80px;
+  z-index: 70;
+  animation: vy-omnibar-fade-in 120ms var(--ease-standard) both;
+}
+.vy-snippet-palette {
+  width: 700px;
+  max-width: 94vw;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-floating);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 120px);
+  position: relative;
+}
+.vy-snippet-palette-input-wrap {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex: none;
+}
+.vy-snippet-palette-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font: 400 15px var(--font-mono);
+  color: var(--text-primary);
+  height: 28px;
+}
+.vy-snippet-palette-input::placeholder { color: var(--text-muted); }
+.vy-snippet-palette-results {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px;
+}
+.vy-snippet-palette-group { margin-bottom: 2px; }
+.vy-snippet-palette-group-head {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  padding: 6px 10px 4px;
+}
+.vy-snippet-palette-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+.vy-snippet-palette-row:hover { background: var(--hover-tint); }
+.vy-snippet-palette-row.is-active { background: var(--surface-active); }
+.vy-snippet-palette-row-title {
+  font: 400 13px var(--font-mono);
+  flex-shrink: 0;
+  min-width: 200px;
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vy-snippet-palette-row-preview {
+  font: 400 11px var(--font-mono);
+  color: var(--text-muted);
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vy-snippet-palette-cat-pill {
+  font: 500 10px var(--font-mono);
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  background: var(--hover-tint);
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+}
+.vy-snippet-palette-cat-pill.cat-reverse-shell { color: var(--ansi-red, #ea6962); border-color: var(--ansi-red, #ea6962); }
+.vy-snippet-palette-cat-pill.cat-web-payload   { color: var(--ansi-yellow, #d8a657); border-color: var(--ansi-yellow, #d8a657); }
+.vy-snippet-palette-cat-pill.cat-linux-enum    { color: var(--ansi-green, #a9b665); border-color: var(--ansi-green, #a9b665); }
+.vy-snippet-palette-cat-pill.cat-windows-enum  { color: var(--ansi-blue, #7daea3); border-color: var(--ansi-blue, #7daea3); }
+.vy-snippet-palette-cat-pill.cat-file-transfer { color: var(--ansi-cyan, #89b482); border-color: var(--ansi-cyan, #89b482); }
+.vy-snippet-palette-cat-pill.cat-utility       { color: var(--text-muted); }
+.vy-snippet-palette-empty {
+  padding: 20px 14px;
+  text-align: center;
+  font: 400 12px var(--font-mono);
+  color: var(--text-muted);
+}
+.vy-snippet-palette-toast {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface-active);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 5px 14px;
+  font: 400 12px var(--font-mono);
+  color: var(--text-primary);
+  white-space: nowrap;
+  pointer-events: none;
+}
