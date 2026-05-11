@@ -18,7 +18,7 @@ interface FileTreeProps {
 export function FileTree({ root, collapsed, side = "left" }: FileTreeProps) {
   const showHidden = useSettings().showHiddenFiles;
   const { sidebarWidth, setSidebarWidth } = useLayout();
-  const { topLevel, byPath, toggle } = useTree(root, showHidden);
+  const { topLevel, byPath, toggle, unreachable } = useTree(root, showHidden);
   const gitStatus = useGitStatus(root);
   if (collapsed) return null;
 
@@ -33,16 +33,29 @@ export function FileTree({ root, collapsed, side = "left" }: FileTreeProps) {
         <span>EXPLORER</span>
       </div>
       <div className="vy-tree-body">
-        {topLevel.map((e) => (
-          <Branch
-            key={e.path}
-            entry={e}
-            depth={0}
-            byPath={byPath}
-            toggle={toggle}
-            gitStatus={gitStatus}
-          />
-        ))}
+        {unreachable ? (
+          <div className="vy-tree-unreachable">
+            <div className="vy-tree-unreachable-title">remote / unreachable</div>
+            <div className="vy-tree-unreachable-sub" title={root}>
+              {root}
+            </div>
+            <div className="vy-tree-unreachable-hint">
+              the active terminal's cwd isn't on this machine. browse it from
+              the terminal — the status bar still tracks it.
+            </div>
+          </div>
+        ) : (
+          topLevel.map((e) => (
+            <Branch
+              key={e.path}
+              entry={e}
+              depth={0}
+              byPath={byPath}
+              toggle={toggle}
+              gitStatus={gitStatus}
+            />
+          ))
+        )}
       </div>
     </div>
   );

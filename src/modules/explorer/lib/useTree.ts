@@ -25,6 +25,7 @@ function visible(entries: DirEntry[], showHidden: boolean): DirEntry[] {
 export function useTree(root: string, showHidden = false) {
   const [byPath, setByPath] = useState<Record<string, TreeNode>>({});
   const [topLevel, setTopLevel] = useState<DirEntry[]>([]);
+  const [unreachable, setUnreachable] = useState(false);
 
   useEffect(() => {
     // Reset expanded-state cache whenever the root changes (e.g. user
@@ -32,14 +33,23 @@ export function useTree(root: string, showHidden = false) {
     // previous root linger and can never be cleaned up.
     setByPath({});
     setTopLevel([]);
+    setUnreachable(false);
     let cancelled = false;
     native.fs
       .readDir(root)
       .then((entries) => {
-        if (!cancelled) setTopLevel(visible(entries, showHidden));
+        if (cancelled) return;
+        setTopLevel(visible(entries, showHidden));
+        setUnreachable(false);
       })
       .catch(() => {
-        if (!cancelled) setTopLevel([]);
+        if (cancelled) return;
+        // Path isn't on the local filesystem — most commonly because
+        // the user SSH'd into a remote host and their shell reported
+        // a remote cwd via OSC 7. The status bar still shows the
+        // path; we just can't walk it here.
+        setTopLevel([]);
+        setUnreachable(true);
       });
     return () => {
       cancelled = true;
@@ -68,5 +78,5 @@ export function useTree(root: string, showHidden = false) {
     [byPath, showHidden],
   );
 
-  return { topLevel, byPath, toggle };
+  return { topLevel, byPath, toggle, unreachable };
 }

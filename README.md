@@ -42,7 +42,21 @@ To use AI: ⌘, → **AI · valley** → paste your Anthropic or OpenAI key. Sto
 For tmux users, add to `~/.tmux.conf` so cwd / branch / block-rails track inside tmux:
 ```
 set -g allow-passthrough on
+set -g set-clipboard on
 ```
+
+### Remote / SSH
+
+When you SSH into another host, valley's **status bar will follow your remote `cd`** if the remote shell emits OSC 7 — but the sidebar can't walk a remote filesystem, so it switches to a "remote / unreachable" indicator showing the current remote path.
+
+To wire OSC 7 on the remote machine, add to its `~/.zshrc`:
+```bash
+autoload -Uz add-zsh-hook
+__osc7() { printf '\033]7;file://%s%s\a' "$HOST" "$PWD"; }
+add-zsh-hook precmd __osc7
+```
+
+For tmux inside SSH, the remote tmux config also needs `set -g allow-passthrough on`.
 
 ## Keyboard
 

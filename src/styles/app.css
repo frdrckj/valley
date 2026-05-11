@@ -1367,6 +1367,34 @@
 .vy-block-gutter-mark.is-fail { opacity: 0.95; }
 .vy-block-gutter-mark:hover   { opacity: 1; }
 
+/* Tree empty/error state when the active cwd isn't on this machine
+   (most commonly: user SSH'd somewhere). Status bar still shows the
+   path; the sidebar just can't walk a remote filesystem. */
+.vy-tree-unreachable {
+  padding: 16px 14px;
+  font: 400 12px var(--font-mono);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.vy-tree-unreachable-title {
+  color: var(--text-strong);
+  font-weight: 500;
+  font-size: 12px;
+}
+.vy-tree-unreachable-sub {
+  color: var(--accent-primary);
+  font-size: 11px;
+  word-break: break-all;
+  opacity: 0.85;
+}
+.vy-tree-unreachable-hint {
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.45;
+  margin-top: 4px;
+}
+
 /* ----- Git status badges in file tree ----- */
 .tree-row {
   display: flex;
