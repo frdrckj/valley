@@ -11,6 +11,7 @@ import { substitute } from "./lib/substitute";
 import { fuzzyScore } from "@/modules/omnibar/lib/fuzzy";
 import { getSettingsSnapshot } from "@/lib/settings";
 import { useTabs } from "@/modules/tabs/useTabs";
+import { useEngagement } from "@/modules/engagement/useEngagement";
 import { native } from "@/lib/native";
 
 /** ------------------------------------------------------------------ */
@@ -91,6 +92,21 @@ export function SnippetPalette() {
   const [activeIdx, setActiveIdx] = useState(0);
   const [toast, setToast] = useState<ToastState | null>(null);
 
+  // Subscribed reads — these re-render the palette when the active
+  // engagement changes mid-session OR when the active terminal swaps
+  // hosts via `ssh kali`, so the chips never lie about where the
+  // snippet is about to land.
+  const activeTabId = useTabs((s) => s.activeId);
+  const cwdHost = useTabs(
+    (s) => s.tabs.find((t) => t.id === s.activeId)?.cwdHost ?? "",
+  );
+  const engagementName = useEngagement((s) => s.active()?.name ?? "");
+  const engagementTarget = useEngagement((s) => s.active()?.scope[0] ?? "");
+  // `activeTabId` reads are referenced so the linter sees the dependency
+  // wiring — the cwdHost selector already depends on it, but reading it
+  // here documents the intent.
+  void activeTabId;
+
   const inputRef = useRef<HTMLInputElement>(null);
   const activeRowRef = useRef<HTMLDivElement | null>(null);
 
@@ -118,10 +134,19 @@ export function SnippetPalette() {
   const applySnippet = useCallback(
     (snippet: Snippet) => {
       const settings = getSettingsSnapshot();
+      // $TARGET resolution order:
+      //   1. The active engagement's first in-scope host — what the
+      //      operator is currently working against. Switching engagements
+      //      flips the default automatically.
+      //   2. Settings → snippetTarget — the user's manual override when
+      //      no engagement is active or scope is empty.
+      // Anything explicit in the snippet body (e.g. `nc 10.0.0.1`)
+      // bypasses both since substitute() only touches the literal token.
+      const engTarget = useEngagement.getState().active()?.scope[0];
       const body = substitute(snippet.body, {
         lhost: settings.snippetLhost || undefined,
         lport: settings.snippetLport || undefined,
-        target: settings.snippetTarget || undefined,
+        target: engTarget || settings.snippetTarget || undefined,
         port: settings.snippetPort || undefined,
       });
 
@@ -197,6 +222,35 @@ export function SnippetPalette() {
             spellCheck={false}
           />
         </div>
+
+        {(cwdHost || engagementName || engagementTarget) && (
+          <div className="vy-snippet-palette-chips">
+            {cwdHost && (
+              <span
+                className="vy-snippet-palette-chip vy-snippet-palette-chip-remote"
+                title="Snippet will be sent through the active SSH session — make sure the syntax is correct for the remote shell"
+              >
+                remote: {cwdHost}
+              </span>
+            )}
+            {engagementName && (
+              <span
+                className="vy-snippet-palette-chip"
+                title="Active engagement — used to scope recents and (when set) provides $TARGET"
+              >
+                engagement: {engagementName}
+              </span>
+            )}
+            {engagementTarget && (
+              <span
+                className="vy-snippet-palette-chip vy-snippet-palette-chip-target"
+                title="$TARGET placeholder will be substituted with this value"
+              >
+                $TARGET → {engagementTarget}
+              </span>
+            )}
+          </div>
+        )}
 
         <div className="vy-snippet-palette-results">
           {CATEGORY_ORDER.map((cat) => {

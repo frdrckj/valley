@@ -2003,6 +2003,43 @@
   height: 28px;
 }
 .vy-snippet-palette-input::placeholder { color: var(--text-muted); }
+
+/* Chip row — shows the runtime context the snippet is about to inherit:
+   active SSH host, active engagement, resolved $TARGET. Lets the operator
+   spot mismatches (e.g. about to send a Linux-only payload to a Windows
+   remote) before the snippet hits the terminal. */
+.vy-snippet-palette-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex: none;
+  background: var(--surface-sunken, transparent);
+}
+.vy-snippet-palette-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: 500 10.5px var(--font-mono);
+  letter-spacing: 0.02em;
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  background: transparent;
+  white-space: nowrap;
+  cursor: default;
+}
+.vy-snippet-palette-chip-remote {
+  color: var(--ansi-yellow, #d8a657);
+  border-color: var(--ansi-yellow, #d8a657);
+}
+.vy-snippet-palette-chip-target {
+  color: var(--ansi-cyan, #89b482);
+  border-color: var(--ansi-cyan, #89b482);
+}
+
 .vy-snippet-palette-results {
   flex: 1;
   min-height: 0;

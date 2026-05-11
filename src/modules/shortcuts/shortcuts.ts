@@ -26,7 +26,6 @@ export type ShortcutId =
   | "terminal.zoomReset"
   | "ai.toggle"
   | "ai.askSelection"
-  | "shortcuts.open"
   | "settings.open"
   | "sidebar.toggle"
   | "omnibar.open"
@@ -57,13 +56,6 @@ const isMod = (e: KeyboardEvent) =>
   IS_MAC ? e.metaKey && !e.ctrlKey : e.ctrlKey && !e.metaKey;
 
 export const SHORTCUTS: Shortcut[] = [
-  {
-    id: "shortcuts.open",
-    label: "Show keyboard shortcuts",
-    keys: ["⌘", "K"],
-    group: "General",
-    match: (e) => isMod(e) && e.key.toLowerCase() === "k",
-  },
   {
     id: "settings.open",
     label: "Open settings",

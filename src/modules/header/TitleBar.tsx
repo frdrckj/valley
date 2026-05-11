@@ -6,7 +6,6 @@ import { useTabs } from "@/modules/tabs/useTabs";
 
 interface TitleBarProps {
   onToggleSidebar: () => void;
-  onOpenShortcuts: () => void;
 }
 
 /**
@@ -16,9 +15,11 @@ interface TitleBarProps {
  * least one path lands on every Tauri / macOS combination.
  *
  * Layout: [80 px traffic-light gutter] [sidebar toggle] [divider] [tabs]
- * [draggable spacer] [shortcuts] [settings]
+ * [draggable spacer] [settings]. The keyboard-shortcut viewer has moved
+ * into Settings — the dialog and ⌘K binding were removed because ⌘K
+ * also shadowed ⌘⇧K (Snippet palette) on macOS.
  */
-export function TitleBar({ onToggleSidebar, onOpenShortcuts }: TitleBarProps) {
+export function TitleBar({ onToggleSidebar }: TitleBarProps) {
   const tabs = useTabs((s) => s.tabs);
   const activeId = useTabs((s) => s.activeId);
   const { activate, close, open } = useTabs.getState();
@@ -114,15 +115,6 @@ export function TitleBar({ onToggleSidebar, onOpenShortcuts }: TitleBarProps) {
 
       <div className="vy-header-spacer" data-tauri-drag-region />
 
-      <button
-        className="vy-header-btn"
-        onClick={onOpenShortcuts}
-        title="Keyboard shortcuts (⌘K)"
-        data-no-drag
-        type="button"
-      >
-        <Icon name="keyboard" size={16} />
-      </button>
       <button
         className="vy-header-btn"
         onClick={() => void invoke("open_settings_window")}

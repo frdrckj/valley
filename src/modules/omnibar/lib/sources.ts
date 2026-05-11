@@ -224,13 +224,6 @@ export function getCommands(): CommandItem[] {
     },
     {
       kind: "command",
-      id: "shortcuts.open",
-      label: "Show Keyboard Shortcuts",
-      hint: "⌘K",
-      run: () => dispatchShortcutById("shortcuts.open"),
-    },
-    {
-      kind: "command",
       id: "settings.open",
       label: "Open Settings",
       hint: "⌘,",

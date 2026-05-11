@@ -25,7 +25,6 @@ import { applyChromeTheme, getTheme, resolveTheme } from "@/modules/theme/themes
 import { setLive } from "@/lib/workspace";
 import { native } from "@/lib/native";
 import { useGlobalShortcuts } from "@/modules/shortcuts/useGlobalShortcuts";
-import { ShortcutsDialog } from "@/modules/shortcuts/ShortcutsDialog";
 import { Welcome } from "@/modules/welcome/Welcome";
 import { DecodePanel } from "@/modules/decode/DecodePanel";
 import { useDecodePanel } from "@/modules/decode/useDecodePanel";
@@ -180,7 +179,6 @@ export default function App() {
   const omnibar = useOmnibar();
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [explorerOpen, setExplorerOpen] = useState(false);
-  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const devUI = isDevModeUI();
   // Track the active terminal's cwd via the useTabs store. The OSC 7
@@ -240,7 +238,6 @@ export default function App() {
   }, [settings.theme]);
 
   useGlobalShortcuts({
-    "shortcuts.open": () => setShortcutsOpen((v) => !v),
     "settings.open": () => void invoke("open_settings_window"),
     "tab.new": () => useTabs.getState().open({ kind: "terminal", label: "zsh" }),
     "omnibar.open": () => omnibar.toggle(),
@@ -339,10 +336,7 @@ export default function App() {
 
   return (
     <div className="vy-app">
-      <TitleBar
-        onToggleSidebar={() => setExplorerOpen((v) => !v)}
-        onOpenShortcuts={() => setShortcutsOpen((v) => !v)}
-      />
+      <TitleBar onToggleSidebar={() => setExplorerOpen((v) => !v)} />
 
       <div className="vy-body">
         {isSettings ? (
@@ -364,11 +358,6 @@ export default function App() {
       {showAiOmnibar && <AiOmnibar />}
 
       <Omnibar />
-
-      <ShortcutsDialog
-        open={shortcutsOpen}
-        onClose={() => setShortcutsOpen(false)}
-      />
 
       <Welcome />
 
