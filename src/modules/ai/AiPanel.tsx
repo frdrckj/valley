@@ -130,11 +130,27 @@ function AiPanelInner({
   side: Side;
   width: number;
 }) {
-  const { messages, sendMessage, status, stop, addToolApprovalResponse } = useChat<AppMessage>({ chat });
+  const {
+    messages,
+    sendMessage,
+    status,
+    stop,
+    addToolApprovalResponse,
+    error,
+    clearError,
+    regenerate,
+  } = useChat<AppMessage>({ chat });
   const [text, setText] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const isStreaming = status === "submitted" || status === "streaming";
+
+  // Surface SDK errors so the user actually sees "auth failed" /
+  // "model not found" / etc. instead of a silent dead chat. Without
+  // this, a 401 from Anthropic just looks like the AI froze.
+  useEffect(() => {
+    if (error) console.error("[valley.ai]", error);
+  }, [error]);
 
   // Drain pending terminal-context (set by ⌘L). Runs on mount AND
   // subscribes to later updates so a second ⌘L while the panel is
@@ -169,6 +185,34 @@ function AiPanelInner({
       </div>
       <div className="vy-aipanel-body">
         <MessageList messages={messages} onApprove={handleApprove} />
+        {error && (
+          <div className="vy-aipanel-error">
+            <div className="vy-aipanel-error-head">
+              <Icon name="alert" size={12} />
+              <span>request failed</span>
+            </div>
+            <div className="vy-aipanel-error-msg">{error.message}</div>
+            <div className="vy-aipanel-error-actions">
+              <button
+                type="button"
+                className="vy-aipanel-error-btn"
+                onClick={() => {
+                  clearError();
+                  void regenerate();
+                }}
+              >
+                retry
+              </button>
+              <button
+                type="button"
+                className="vy-aipanel-error-btn vy-aipanel-error-btn--ghost"
+                onClick={() => clearError()}
+              >
+                dismiss
+              </button>
+            </div>
+          </div>
+        )}
       </div>
       <div className="vy-aipanel-composer">
         <Icon name="clip" size={13} style={{ color: "var(--text-muted)" }} />

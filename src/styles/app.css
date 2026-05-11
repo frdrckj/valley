@@ -508,6 +508,51 @@
   background: color-mix(in srgb, var(--accent-danger) 12%, transparent);
 }
 
+/* Visible-error block rendered inside the AI panel body when the SDK
+   reports an error (auth fail, rate limit, model not found, network).
+   Without this the user saw their own message with no feedback. */
+.vy-aipanel-error {
+  margin: 8px 10px 12px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent-danger) 50%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent-danger) 8%, transparent);
+  font: 400 12px var(--font-mono);
+}
+.vy-aipanel-error-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent-danger);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.vy-aipanel-error-msg {
+  color: var(--text-primary);
+  font-size: 11.5px;
+  line-height: 1.45;
+  word-break: break-word;
+  margin-bottom: 8px;
+}
+.vy-aipanel-error-actions {
+  display: flex;
+  gap: 6px;
+}
+.vy-aipanel-error-btn {
+  font: 500 11px var(--font-mono);
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: var(--accent-danger);
+  color: var(--surface-base);
+  border: 0;
+  cursor: pointer;
+}
+.vy-aipanel-error-btn--ghost {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+}
+
 /* Empty state shown when no API key is set for the active provider —
    replaces the body + composer entirely. */
 .vy-aipanel-empty {
