@@ -1657,3 +1657,186 @@
   background: var(--hover-tint);
   color: var(--text-strong);
 }
+
+/* ----- Status-bar engagement chip ----- */
+.vy-statusbar-engagement {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px;
+  font: 400 11px var(--font-mono);
+  color: var(--accent-primary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-standard),
+    border-color var(--dur-fast) var(--ease-standard);
+}
+.vy-statusbar-engagement:hover {
+  background: var(--hover-tint);
+  border-color: var(--border-subtle);
+}
+.vy-statusbar-engagement-scope {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+/* ----- EngagementDialog ----- */
+.vy-eng-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 900;
+}
+.vy-eng-dialog {
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-floating);
+  width: min(480px, 92vw);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.vy-eng-dialog-head {
+  padding: 14px 18px 10px;
+  font: 600 13px var(--font-mono);
+  color: var(--text-strong);
+  border-bottom: 1px solid var(--border-subtle);
+  flex: none;
+}
+.vy-eng-dialog-form {
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+.vy-eng-dialog-label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font: 400 11px var(--font-mono);
+  color: var(--text-muted);
+}
+.vy-eng-dialog-input,
+.vy-eng-dialog-textarea {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 6px 9px;
+  font: 400 12px var(--font-mono);
+  color: var(--text-primary);
+  outline: none;
+  resize: none;
+  transition: border-color var(--dur-fast) var(--ease-standard);
+}
+.vy-eng-dialog-input:focus,
+.vy-eng-dialog-textarea:focus {
+  border-color: var(--accent-primary);
+}
+.vy-eng-dialog-hint {
+  font-size: 10px;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+.vy-eng-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+.vy-eng-dialog-danger {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 12px;
+  display: flex;
+  justify-content: flex-start;
+}
+.vy-eng-dialog-btn {
+  padding: 5px 14px;
+  font: 500 12px var(--font-mono);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-standard),
+    opacity var(--dur-fast) var(--ease-standard);
+}
+.vy-eng-dialog-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.vy-eng-dialog-btn--ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border-color: var(--border-subtle);
+}
+.vy-eng-dialog-btn--ghost:hover:not(:disabled) {
+  background: var(--hover-tint);
+  color: var(--text-primary);
+}
+.vy-eng-dialog-btn--primary {
+  background: var(--accent-primary);
+  color: var(--gb-dark-bg-0, #282828);
+  border-color: transparent;
+}
+.vy-eng-dialog-btn--primary:hover:not(:disabled) {
+  opacity: 0.88;
+}
+.vy-eng-dialog-btn--danger {
+  background: transparent;
+  color: var(--red, #cc241d);
+  border-color: var(--red, #cc241d);
+}
+.vy-eng-dialog-btn--danger:hover {
+  background: rgba(204, 36, 29, 0.12);
+}
+.vy-eng-dialog-btn--danger.is-armed {
+  background: rgba(204, 36, 29, 0.18);
+}
+.vy-eng-dialog-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px;
+  overflow-y: auto;
+  max-height: 320px;
+}
+.vy-eng-dialog-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  gap: 10px;
+  transition: background var(--dur-fast) var(--ease-standard);
+}
+.vy-eng-dialog-row:hover {
+  background: var(--hover-tint);
+}
+.vy-eng-dialog-row.is-active {
+  background: color-mix(in srgb, var(--accent-primary) 15%, transparent);
+}
+.vy-eng-dialog-row-name {
+  font: 500 12px var(--font-mono);
+  color: var(--text-strong);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vy-eng-dialog-row-meta {
+  font: 400 11px var(--font-mono);
+  color: var(--text-muted);
+  flex: none;
+}
+.vy-eng-dialog-empty {
+  padding: 24px 18px;
+  font: 400 12px var(--font-mono);
+  color: var(--text-muted);
+  text-align: center;
+}

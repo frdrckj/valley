@@ -287,6 +287,31 @@ export function getCommands(): CommandItem[] {
       label: "Theme: Auto (System)",
       run: () => void patchSettings({ theme: "auto" }),
     },
+    {
+      kind: "command",
+      id: "engagement.new",
+      label: "Engagement: New…",
+      run: () => { import("@/modules/engagement/useEngagementDialog").then(({ useEngagementDialog }) => useEngagementDialog.getState().open("new")); },
+    },
+    {
+      kind: "command",
+      id: "engagement.switch",
+      label: "Engagement: Switch…",
+      run: () => { import("@/modules/engagement/useEngagementDialog").then(({ useEngagementDialog }) => useEngagementDialog.getState().open("switch")); },
+    },
+    {
+      kind: "command",
+      id: "engagement.edit",
+      label: "Engagement: Edit current…",
+      run: () => {
+        import("@/modules/engagement/useEngagementDialog").then(({ useEngagementDialog }) => {
+          import("@/modules/engagement/useEngagement").then(({ useEngagement }) => {
+            if (!useEngagement.getState().activeId) return;
+            useEngagementDialog.getState().open("edit");
+          });
+        });
+      },
+    },
   ];
 }
 

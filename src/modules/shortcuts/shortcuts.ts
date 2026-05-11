@@ -35,7 +35,10 @@ export type ShortcutId =
   | "shortcuts.open"
   | "settings.open"
   | "sidebar.toggle"
-  | "omnibar.open";
+  | "omnibar.open"
+  | "engagement.switch"
+  | "decode.open"
+  | "snippets.open";
 
 export type ShortcutGroup =
   | "General"
@@ -249,6 +252,27 @@ export const SHORTCUTS: Shortcut[] = [
     keys: ["⌘", "B"],
     group: "View",
     match: (e) => isMod(e) && e.key.toLowerCase() === "b",
+  },
+  {
+    id: "engagement.switch",
+    label: "Switch engagement",
+    keys: ["⌘", "⇧", "E"],
+    group: "View",
+    match: (e) => isMod(e) && e.shiftKey && e.key.toLowerCase() === "e",
+  },
+  {
+    id: "decode.open",
+    label: "Decode panel",
+    keys: ["⌘", "⇧", "D"],
+    group: "General",
+    match: (e) => isMod(e) && e.shiftKey && e.key.toLowerCase() === "d",
+  },
+  {
+    id: "snippets.open",
+    label: "Snippet palette",
+    keys: ["⌘", "⇧", "K"],
+    group: "General",
+    match: (e) => isMod(e) && e.shiftKey && e.key.toLowerCase() === "k",
   },
 ];
 

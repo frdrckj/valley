@@ -27,6 +27,13 @@ import { native } from "@/lib/native";
 import { useGlobalShortcuts } from "@/modules/shortcuts/useGlobalShortcuts";
 import { ShortcutsDialog } from "@/modules/shortcuts/ShortcutsDialog";
 import { Welcome } from "@/modules/welcome/Welcome";
+import { DecodePanel } from "@/modules/decode/DecodePanel";
+import { useDecodePanel } from "@/modules/decode/useDecodePanel";
+import { EngagementDialog } from "@/modules/engagement/EngagementDialog";
+import { useEngagementDialog } from "@/modules/engagement/useEngagementDialog";
+import { hydrateEngagements } from "@/modules/engagement/useEngagement";
+import { SnippetPalette } from "@/modules/snippets/SnippetPalette";
+import { useSnippetPalette } from "@/modules/snippets/lib/useSnippetPalette";
 import {
   closePane,
   findActive,
@@ -243,6 +250,8 @@ export default function App() {
       // Hydrate recent files then start tracking new file tabs.
       await hydrateRecent();
       unsubRecent = startRecentTracking();
+      // Hydrate engagement workspaces.
+      await hydrateEngagements();
     })();
     return () => {
       unsubTabs?.();
@@ -331,6 +340,7 @@ export default function App() {
     "terminal.zoomIn": () => zoomTerminal(+1),
     "terminal.zoomOut": () => zoomTerminal(-1),
     "terminal.zoomReset": () => zoomTerminal("reset"),
+    "engagement.switch": () => useEngagementDialog.getState().open("switch"),
     "ai.toggle": () => setAiPanelOpen((v) => !v),
     "ai.askSelection": () => {
       // Capture before opening so the panel can consume on first render.
@@ -339,6 +349,7 @@ export default function App() {
       setAiPanelOpen(true);
     },
     "sidebar.toggle": () => setExplorerOpen((v) => !v),
+    "decode.open": () => useDecodePanel.getState().toggle(),
   });
 
   function pickScreen(s: ScreenId) {
@@ -407,6 +418,10 @@ export default function App() {
       />
 
       <Welcome />
+
+      <DecodePanel />
+
+      <EngagementDialog />
 
       {devUI && (
         <ScreenSwitcher

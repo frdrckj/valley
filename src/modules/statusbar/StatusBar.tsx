@@ -1,6 +1,8 @@
 import { Dot } from "@/components/Dot";
 import { Icon } from "@/components/Icon";
 import { useTabs } from "@/modules/tabs/useTabs";
+import { useEngagement } from "@/modules/engagement/useEngagement";
+import { useEngagementDialog } from "@/modules/engagement/useEngagementDialog";
 import { useBranch } from "./useBranch";
 
 export type AiState = "ready" | "thinking" | "error" | "offline";
@@ -24,14 +26,34 @@ export function StatusBar({ aiState = "ready" }: StatusBarProps) {
     (s) => s.tabs.find((t) => t.id === s.activeId)?.kind ?? "terminal",
   );
   const branch = useBranch(cwd);
+  const activeEngagement = useEngagement((s) => s.active());
 
   const cwdLabel = pretty(cwd);
+
+  function openEngagementSwitch() {
+    useEngagementDialog.getState().open("switch");
+  }
 
   return (
     <div className="vy-statusbar">
       <span className="cluster">
         <Dot tone={tones[aiState]} /> valley · {aiState}
       </span>
+
+      {activeEngagement && (
+        <button
+          type="button"
+          className="vy-statusbar-engagement"
+          onClick={openEngagementSwitch}
+          title={`Engagement: ${activeEngagement.name} — click to switch`}
+        >
+          <Icon name="pin" size={11} />
+          {activeEngagement.name}
+          <span className="vy-statusbar-engagement-scope">
+            · {activeEngagement.scope.length} in scope
+          </span>
+        </button>
+      )}
 
       {cwdLabel && (
         <span
