@@ -17,12 +17,6 @@ export type ShortcutId =
   | "tab.next"
   | "tab.prev"
   | "tab.selectByIndex"
-  | "split.vertical"
-  | "split.horizontal"
-  | "pane.focus.left"
-  | "pane.focus.right"
-  | "pane.focus.up"
-  | "pane.focus.down"
   | "search.focus"
   | "prompt.prev"
   | "prompt.next"
@@ -43,7 +37,6 @@ export type ShortcutId =
 export type ShortcutGroup =
   | "General"
   | "Tabs"
-  | "Splits"
   | "Search"
   | "AI"
   | "View";
@@ -138,48 +131,6 @@ export const SHORTCUTS: Shortcut[] = [
     match: (e) => isMod(e) && /^[1-9]$/.test(e.key),
   },
   {
-    id: "split.vertical",
-    label: "Split right",
-    keys: ["⌘", "D"],
-    group: "Splits",
-    match: (e) => isMod(e) && !e.shiftKey && e.key.toLowerCase() === "d",
-  },
-  {
-    id: "split.horizontal",
-    label: "Split below",
-    keys: ["⌘", "⇧", "D"],
-    group: "Splits",
-    match: (e) => isMod(e) && e.shiftKey && e.key.toLowerCase() === "d",
-  },
-  {
-    id: "pane.focus.left",
-    label: "Focus left pane",
-    keys: ["⌘", "⌥", "←"],
-    group: "Splits",
-    match: (e) => isMod(e) && e.altKey && e.key === "ArrowLeft",
-  },
-  {
-    id: "pane.focus.right",
-    label: "Focus right pane",
-    keys: ["⌘", "⌥", "→"],
-    group: "Splits",
-    match: (e) => isMod(e) && e.altKey && e.key === "ArrowRight",
-  },
-  {
-    id: "pane.focus.up",
-    label: "Focus pane above",
-    keys: ["⌘", "⌥", "↑"],
-    group: "Splits",
-    match: (e) => isMod(e) && e.altKey && e.key === "ArrowUp",
-  },
-  {
-    id: "pane.focus.down",
-    label: "Focus pane below",
-    keys: ["⌘", "⌥", "↓"],
-    group: "Splits",
-    match: (e) => isMod(e) && e.altKey && e.key === "ArrowDown",
-  },
-  {
     id: "search.focus",
     label: "Find in terminal",
     keys: ["⌘", "F"],
@@ -263,12 +214,9 @@ export const SHORTCUTS: Shortcut[] = [
   {
     id: "decode.open",
     label: "Decode panel",
-    keys: ["⌘", "⇧", "X"],
-    // ⌘⇧D was originally specced but split.horizontal already owns it
-    // (and matches earlier in this list, so it'd shadow decode). X is
-    // free; mnemonic = "decoder / x-ray".
+    keys: ["⌘", "⇧", "D"],
     group: "General",
-    match: (e) => isMod(e) && e.shiftKey && e.key.toLowerCase() === "x",
+    match: (e) => isMod(e) && e.shiftKey && e.key.toLowerCase() === "d",
   },
   {
     id: "snippets.open",
@@ -282,7 +230,6 @@ export const SHORTCUTS: Shortcut[] = [
 export const SHORTCUT_GROUPS: ShortcutGroup[] = [
   "General",
   "Tabs",
-  "Splits",
   "View",
   "Search",
   "AI",

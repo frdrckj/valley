@@ -34,13 +34,6 @@ import { useEngagementDialog } from "@/modules/engagement/useEngagementDialog";
 import { hydrateEngagements } from "@/modules/engagement/useEngagement";
 import { SnippetPalette } from "@/modules/snippets/SnippetPalette";
 import { useSnippetPalette } from "@/modules/snippets/lib/useSnippetPalette";
-import {
-  closePane,
-  findActive,
-  focusNeighbor,
-  splitPane,
-  type Direction,
-} from "@/modules/terminal/lib/splits";
 import { SearchBar } from "@/modules/terminal/SearchBar";
 import {
   getBlockTrackerFor,
@@ -50,47 +43,30 @@ import { useAiContext } from "@/modules/ai/store/contextStore";
 
 const WORKSPACE_ROOT = "/Users/frederickjerusha/Documents/works/terminal/valley";
 
-/**
- * Split the active pane of the active tab. The new pane gets a fresh PTY
- * session id so the next mount kicks off a new shell.
- */
-function splitActivePane(dir: "v" | "h") {
+/** Read the active terminal tab's session id, or null if the active
+ *  tab isn't a terminal. Replaces the previous PaneTree walk now that
+ *  valley delegates pane splitting to tmux. */
+function activeTerminalSessionId(): string | null {
   const s = useTabs.getState();
-  if (!s.activeId) return;
+  if (!s.activeId) return null;
   const tab = s.tabs.find((t) => t.id === s.activeId);
-  if (!tab || tab.kind !== "terminal") return;
-  const active = findActive(tab.panes);
-  if (!active) return;
-  const newSessionId = `pty-${tab.id}-${Date.now().toString(36)}`;
-  s.setPanes(tab.id, splitPane(tab.panes, active.sessionId, dir, newSessionId));
-}
-
-/** Move pane focus in the active tab via the splits.ts helper. */
-function focusNeighborInActiveTab(direction: Direction) {
-  const s = useTabs.getState();
-  if (!s.activeId) return;
-  const tab = s.tabs.find((t) => t.id === s.activeId);
-  if (!tab || tab.kind !== "terminal") return;
-  s.setPanes(tab.id, focusNeighbor(tab.panes, direction));
+  if (!tab || tab.kind !== "terminal") return null;
+  return tab.sessionId ?? null;
 }
 
 /** Capture text to feed into the AI composer when the user hits ⌘L.
  *  Priority: explicit terminal selection → most-recent completed
  *  block's output → null (caller just opens the panel). */
 function captureActiveTerminalContext(): string | null {
-  const s = useTabs.getState();
-  if (!s.activeId) return null;
-  const tab = s.tabs.find((t) => t.id === s.activeId);
-  if (!tab || tab.kind !== "terminal") return null;
-  const active = findActive(tab.panes);
-  if (!active) return null;
-  const term = getTerminalFor(active.sessionId);
+  const sessionId = activeTerminalSessionId();
+  if (!sessionId) return null;
+  const term = getTerminalFor(sessionId);
   if (!term) return null;
 
   const sel = term.getSelection();
   if (sel && sel.trim()) return sel;
 
-  const tracker = getBlockTrackerFor(active.sessionId);
+  const tracker = getBlockTrackerFor(sessionId);
   if (!tracker) return null;
   const blocks = tracker.blocks();
   let targetIdx = -1;
@@ -122,14 +98,10 @@ function captureActiveTerminalContext(): string | null {
  *  prompt-A marker through the next prompt-A) to the clipboard. No-op
  *  if no command has finished yet. */
 function copyCurrentBlock() {
-  const s = useTabs.getState();
-  if (!s.activeId) return;
-  const tab = s.tabs.find((t) => t.id === s.activeId);
-  if (!tab || tab.kind !== "terminal") return;
-  const active = findActive(tab.panes);
-  if (!active) return;
-  const tracker = getBlockTrackerFor(active.sessionId);
-  const term = getTerminalFor(active.sessionId);
+  const sessionId = activeTerminalSessionId();
+  if (!sessionId) return;
+  const tracker = getBlockTrackerFor(sessionId);
+  const term = getTerminalFor(sessionId);
   if (!tracker || !term) return;
 
   const blocks = tracker.blocks();
@@ -183,14 +155,10 @@ function zoomTerminal(delta: number | "reset") {
  *  No-op if the active tab isn't a terminal or no blocks have been
  *  recorded yet (fresh shell that hasn't emitted OSC 133 A). */
 function navigatePrompt(dir: "prev" | "next") {
-  const s = useTabs.getState();
-  if (!s.activeId) return;
-  const tab = s.tabs.find((t) => t.id === s.activeId);
-  if (!tab || tab.kind !== "terminal") return;
-  const active = findActive(tab.panes);
-  if (!active) return;
-  const tracker = getBlockTrackerFor(active.sessionId);
-  const term = getTerminalFor(active.sessionId);
+  const sessionId = activeTerminalSessionId();
+  if (!sessionId) return;
+  const tracker = getBlockTrackerFor(sessionId);
+  const term = getTerminalFor(sessionId);
   if (!tracker || !term) return;
   const viewportTop = term.buffer.active.viewportY;
   const target =
@@ -287,9 +255,6 @@ export default function App() {
       console.log("[valley] tab.newEditor not implemented (Phase 3)");
     },
     "tab.close": () => {
-      // Closes the focused pane. If the tab had splits and only one pane
-      // remains, this collapses to that pane. The tab itself is closed
-      // only when the last pane is gone.
       const s = useTabs.getState();
       if (!s.activeId) return;
       const tab = s.tabs.find((t) => t.id === s.activeId);
@@ -298,21 +263,8 @@ export default function App() {
       if (tab.kind === "file" && tab.dirty) {
         if (!window.confirm(`Discard unsaved changes to ${tab.label}?`)) return;
       }
-      const active = findActive(tab.panes);
-      if (!active) {
-        s.close(tab.id);
-        return;
-      }
-      const next = closePane(tab.panes, active.sessionId);
-      if (next === null) s.close(tab.id);
-      else s.setPanes(tab.id, next);
+      s.close(tab.id);
     },
-    "split.vertical": () => splitActivePane("v"),
-    "split.horizontal": () => splitActivePane("h"),
-    "pane.focus.left": () => focusNeighborInActiveTab("left"),
-    "pane.focus.right": () => focusNeighborInActiveTab("right"),
-    "pane.focus.up": () => focusNeighborInActiveTab("up"),
-    "pane.focus.down": () => focusNeighborInActiveTab("down"),
     "tab.next": () => {
       const s = useTabs.getState();
       if (s.tabs.length === 0 || s.activeId === null) return;

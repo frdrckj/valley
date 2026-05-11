@@ -1,6 +1,6 @@
 [package]
 name = "valley"
-version = "0.3.0"
+version = "0.3.1"
 description = "Valley — a lightweight, AI-aware desktop terminal for macOS"
 authors = ["frederickjerusha"]
 edition = "2021"

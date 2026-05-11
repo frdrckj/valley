@@ -210,20 +210,6 @@ export function getCommands(): CommandItem[] {
     },
     {
       kind: "command",
-      id: "split.vertical",
-      label: "Split Right",
-      hint: "⌘D",
-      run: () => dispatchShortcutById("split.vertical"),
-    },
-    {
-      kind: "command",
-      id: "split.horizontal",
-      label: "Split Below",
-      hint: "⌘⇧D",
-      run: () => dispatchShortcutById("split.horizontal"),
-    },
-    {
-      kind: "command",
       id: "sidebar.toggle",
       label: "Toggle File Explorer",
       hint: "⌘B",

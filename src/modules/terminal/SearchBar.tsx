@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { Kbd } from "@/components/Kbd";
-import { findActive } from "./lib/splits";
 import { getSearchAddonFor } from "./lib/useTerminalSession";
 import { useTabs } from "@/modules/tabs/useTabs";
 
@@ -22,10 +21,8 @@ export function SearchBar({ onClose }: SearchBarProps) {
   function activeAddon() {
     const s = useTabs.getState();
     const tab = s.tabs.find((t) => t.id === s.activeId);
-    if (!tab || tab.kind !== "terminal") return null;
-    const active = findActive(tab.panes);
-    if (!active) return null;
-    return getSearchAddonFor(active.sessionId);
+    if (!tab || tab.kind !== "terminal" || !tab.sessionId) return null;
+    return getSearchAddonFor(tab.sessionId);
   }
 
   function find(forward: boolean) {

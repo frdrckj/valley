@@ -7,7 +7,6 @@ import { useLayout, type Side } from "@/lib/layout";
 import { native, type DirEntry } from "@/lib/native";
 import { useSettings } from "@/lib/settings";
 import { useTabs } from "@/modules/tabs/useTabs";
-import { findActive } from "@/modules/terminal/lib/splits";
 
 interface FileTreeProps {
   root: string;
@@ -310,13 +309,12 @@ const ContextMenu = function ContextMenu({
   );
 };
 
-/** Find the currently-focused terminal pane's session id, or null. */
+/** Find the active terminal tab's session id, or null. */
 function activeSessionId(): string | null {
   const s = useTabs.getState();
   const tab = s.tabs.find((t) => t.id === s.activeId);
   if (!tab || tab.kind !== "terminal") return null;
-  const active = findActive(tab.panes);
-  return active?.sessionId ?? null;
+  return tab.sessionId ?? null;
 }
 
 /** POSIX single-quote a path so spaces / shell metacharacters don't break. */

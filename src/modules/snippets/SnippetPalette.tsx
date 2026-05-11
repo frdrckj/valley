@@ -11,7 +11,6 @@ import { substitute } from "./lib/substitute";
 import { fuzzyScore } from "@/modules/omnibar/lib/fuzzy";
 import { getSettingsSnapshot } from "@/lib/settings";
 import { useTabs } from "@/modules/tabs/useTabs";
-import { findActive } from "@/modules/terminal/lib/splits";
 import { native } from "@/lib/native";
 
 /** ------------------------------------------------------------------ */
@@ -130,12 +129,9 @@ export function SnippetPalette() {
 
       const s = useTabs.getState();
       const tab = s.tabs.find((t) => t.id === s.activeId);
-      if (tab && tab.kind === "terminal" && tab.panes) {
-        const active = findActive(tab.panes);
-        if (active) {
-          void native.pty.write(active.sessionId, body);
-          return;
-        }
+      if (tab && tab.kind === "terminal" && tab.sessionId) {
+        void native.pty.write(tab.sessionId, body);
+        return;
       }
       // Fallback: copy to clipboard
       void navigator.clipboard.writeText(body);

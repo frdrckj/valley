@@ -1,6 +1,4 @@
 import { create } from "zustand";
-import type { Pane } from "@/modules/terminal/lib/splits";
-import { newLeaf } from "@/modules/terminal/lib/splits";
 
 export type Tab = {
   id: string;
@@ -11,7 +9,9 @@ export type Tab = {
    *  consults it to decide between local fs and SFTP. */
   cwdHost?: string;
   label: string;
-  panes: Pane;
+  /** Stable session id for the terminal kind. Naming convention
+   *  `pty-<tabId>`. Only meaningful when kind === "terminal". */
+  sessionId?: string;
   /** Preview-tab url. Ignored for terminal tabs. */
   url?: string;
   /** File-tab / diff-tab absolute path. */
@@ -27,11 +27,10 @@ export type Tab = {
 interface TabsState {
   tabs: Tab[];
   activeId: string | null;
-  open(tab: Omit<Tab, "id" | "panes"> & Partial<Pick<Tab, "id">>): string;
+  open(tab: Omit<Tab, "id" | "sessionId"> & Partial<Pick<Tab, "id">>): string;
   close(id: string): void;
   activate(id: string): void;
   rename(id: string, label: string): void;
-  setPanes(id: string, panes: Pane): void;
   setCwd(id: string, cwd: string, host?: string): void;
   setUrl(id: string, url: string): void;
   setDirty(id: string, dirty: boolean): void;
@@ -65,7 +64,7 @@ export const useTabs = create<TabsState>((set, get) => ({
       kind: input.kind,
       cwd: input.cwd,
       label: input.label,
-      panes: newLeaf(`pty-${id}`),
+      sessionId: `pty-${id}`,
       url: input.url,
       path: input.path,
       diffMode: input.diffMode,
@@ -88,9 +87,6 @@ export const useTabs = create<TabsState>((set, get) => ({
         t.id === id ? { ...t, label, userRenamed: true } : t,
       ),
     });
-  },
-  setPanes(id, panes) {
-    set({ tabs: get().tabs.map((t) => (t.id === id ? { ...t, panes } : t)) });
   },
   setCwd(id, cwd, host) {
     const t = get().tabs.find((t) => t.id === id);

@@ -1,5 +1,4 @@
 import { Store } from "@tauri-apps/plugin-store";
-import { newLeaf } from "@/modules/terminal/lib/splits";
 import { useTabs, type Tab } from "./useTabs";
 
 const FILE = "valley-tabs.json";
@@ -7,10 +6,8 @@ const KEY = "tabs";
 const ACTIVE_KEY = "activeId";
 
 /**
- * Subset of Tab we persist. Panes are runtime-only — every restored tab
- * starts as a single fresh pane with a new PTY session, regardless of
- * the splits the user had open. Restoring split layouts is Phase 2 work
- * and would require persisting per-pane state more carefully.
+ * Subset of Tab we persist. Each terminal-kind tab gets a fresh PTY
+ * sessionId on restore so we don't try to attach to a zombie pty.
  */
 interface PersistedTab {
   id: string;
@@ -62,8 +59,8 @@ async function persistNow() {
 
 /**
  * Restore tabs from disk. Returns true if at least one tab was restored.
- * Panes are regenerated from fresh PTY sessionIds so restored terminals
- * are live shells, not zombies of the previous session.
+ * Terminal tabs are regenerated with fresh PTY sessionIds so they're
+ * live shells, not zombies of the previous session.
  */
 export async function hydrateTabs(): Promise<boolean> {
   let persisted: PersistedTab[] = [];
@@ -93,7 +90,7 @@ export async function hydrateTabs(): Promise<boolean> {
     path: p.path,
     userRenamed: p.userRenamed,
     diffMode: p.diffMode,
-    panes: newLeaf(`pty-${p.id}`),
+    sessionId: `pty-${p.id}`,
   }));
 
   useTabs.setState({
@@ -114,8 +111,6 @@ export function startTabsPersistence() {
   let prevTabs = useTabs.getState().tabs;
   let prevActive = useTabs.getState().activeId;
   return useTabs.subscribe((s) => {
-    // Persist on tab list changes OR active-id changes — skip pane edits
-    // since panes aren't persisted.
     if (s.tabs !== prevTabs || s.activeId !== prevActive) {
       prevTabs = s.tabs;
       prevActive = s.activeId;
