@@ -66,6 +66,12 @@ add-zsh-hook precmd __osc7
 
 For tmux inside SSH, the remote tmux config also needs `set -g allow-passthrough on`.
 
+**If the sidebar doesn't switch after `ssh hostname`:**
+
+- Quit Valley fully (⌘Q from the menu, or `pkill -f Valley.app`) and relaunch from `/Applications/Valley.app`. A Valley instance that was running before you installed the new version keeps using the old binary even after the .app file on disk has been replaced.
+- Check that `ssh-add -l` lists at least one key on your local machine. SFTP auth is agent-only.
+- Confirm the remote shell actually emits OSC 7 (the precmd hook above). If your remote zsh is wrapped by `oh-my-zsh` or similar, make sure the `add-zsh-hook precmd __osc7` line runs *after* the framework loads.
+
 ## Keyboard
 
 | Action | Shortcut |
