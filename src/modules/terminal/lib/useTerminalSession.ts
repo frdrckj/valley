@@ -179,6 +179,49 @@ export function useTerminalSession({
       });
       termRef.current = term;
 
+      // ⌘C / ⌘V on the active xterm — xterm.js doesn't wire these for us.
+      // ⌘C copies the current selection straight to system clipboard
+      // (works for both bare-xterm and tmux mouse-selection cases since
+      // both surface the selected text via term.getSelection()). ⌘V is
+      // a normal paste: read the clipboard and write to the PTY.
+      term.attachCustomKeyEventHandler((e) => {
+        if (e.type !== "keydown" || !e.metaKey) return true;
+        const key = e.key.toLowerCase();
+        if (key === "c") {
+          const sel = term.getSelection();
+          if (sel) {
+            void navigator.clipboard.writeText(sel);
+            return false;
+          }
+        } else if (key === "v") {
+          void navigator.clipboard.readText().then((text) => {
+            if (text) void ptyRef.current?.write(text);
+          });
+          return false;
+        }
+        return true;
+      });
+
+      // OSC 52 — apps running inside the terminal (notably tmux with
+      // `set -g set-clipboard on`) emit `\e]52;c;<base64>\a` to ask the
+      // terminal to put their selection on the system clipboard.
+      // xterm.js doesn't ship a default handler, so register our own.
+      const osc52Dispose = term.parser.registerOscHandler(52, (data) => {
+        // Format: "<target>;<base64>" where target is c|p|s|0-7.
+        // Decode the base64 body and write to the OS clipboard.
+        const semi = data.indexOf(";");
+        if (semi < 0) return false;
+        const body = data.slice(semi + 1);
+        try {
+          const text = atob(body);
+          void navigator.clipboard.writeText(text);
+        } catch {
+          /* invalid base64; ignore */
+        }
+        return true;
+      });
+      cleanups.push(() => osc52Dispose.dispose());
+
       const fit = new FitAddon();
       fitRef.current = fit;
       term.loadAddon(fit);
