@@ -1,7 +1,7 @@
 {
   "name": "valley",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "description": "Valley — a lightweight, AI-aware desktop terminal for macOS",
   "scripts": {
