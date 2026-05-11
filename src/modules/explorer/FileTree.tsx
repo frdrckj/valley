@@ -11,15 +11,19 @@ import { findActive } from "@/modules/terminal/lib/splits";
 
 interface FileTreeProps {
   root: string;
+  /** Hostname for the cwd, when the active terminal is SSH'd into a
+   *  remote machine. Empty / undefined means local — useTree skips
+   *  the SFTP fallback entirely. */
+  host?: string;
   collapsed?: boolean;
   side?: Side;
 }
 
-export function FileTree({ root, collapsed, side = "left" }: FileTreeProps) {
+export function FileTree({ root, host, collapsed, side = "left" }: FileTreeProps) {
   const showHidden = useSettings().showHiddenFiles;
   const { sidebarWidth, setSidebarWidth } = useLayout();
-  const { topLevel, byPath, toggle, unreachable } = useTree(root, showHidden);
-  const gitStatus = useGitStatus(root);
+  const { topLevel, byPath, toggle, mode } = useTree(root, showHidden, host);
+  const gitStatus = useGitStatus(mode.kind === "remote" ? "" : root);
   if (collapsed) return null;
 
   return (
@@ -31,20 +35,35 @@ export function FileTree({ root, collapsed, side = "left" }: FileTreeProps) {
       />
       <div className="vy-tree-head">
         <span>EXPLORER</span>
+        {mode.kind === "remote" && (
+          <span className="vy-tree-head-host" title={`SFTP · ${mode.host}`}>
+            · {mode.host}
+          </span>
+        )}
       </div>
       <div className="vy-tree-body">
-        {unreachable ? (
+        {mode.kind === "connecting" && (
+          <div className="vy-tree-status">
+            <div className="vy-tree-status-title">connecting…</div>
+            <div className="vy-tree-status-sub" title={mode.host}>
+              {mode.host} · {root}
+            </div>
+          </div>
+        )}
+        {mode.kind === "error" && (
           <div className="vy-tree-unreachable">
-            <div className="vy-tree-unreachable-title">remote / unreachable</div>
+            <div className="vy-tree-unreachable-title">
+              {mode.host ? `couldn't connect to ${mode.host}` : "remote / unreachable"}
+            </div>
             <div className="vy-tree-unreachable-sub" title={root}>
               {root}
             </div>
             <div className="vy-tree-unreachable-hint">
-              the active terminal's cwd isn't on this machine. browse it from
-              the terminal — the status bar still tracks it.
+              {mode.message}
             </div>
           </div>
-        ) : (
+        )}
+        {(mode.kind === "local" || mode.kind === "remote") &&
           topLevel.map((e) => (
             <Branch
               key={e.path}
@@ -54,8 +73,7 @@ export function FileTree({ root, collapsed, side = "left" }: FileTreeProps) {
               toggle={toggle}
               gitStatus={gitStatus}
             />
-          ))
-        )}
+          ))}
       </div>
     </div>
   );

@@ -47,14 +47,22 @@ set -g set-clipboard on
 
 ### Remote / SSH
 
-When you SSH into another host, valley's **status bar will follow your remote `cd`** if the remote shell emits OSC 7 — but the sidebar can't walk a remote filesystem, so it switches to a "remote / unreachable" indicator showing the current remote path.
+When you SSH into a remote host, valley's **status bar AND sidebar follow your remote `cd`**:
 
-To wire OSC 7 on the remote machine, add to its `~/.zshrc`:
+- The status bar tracks the path via OSC 7 over SSH.
+- The sidebar tries the local filesystem first; if the path doesn't exist locally, it opens a parallel SFTP connection to the same host and lists files there. The EXPLORER header gains a small `· <hostname>` marker so you know you're remote.
+
+**Requirements on the remote machine** — add to `~/.zshrc`:
 ```bash
 autoload -Uz add-zsh-hook
 __osc7() { printf '\033]7;file://%s%s\a' "$HOST" "$PWD"; }
 add-zsh-hook precmd __osc7
 ```
+
+**Requirements on the local machine** — for the SFTP sidebar:
+
+- Authentication is via SSH agent (`ssh-add` your key, make sure `SSH_AUTH_SOCK` is set). If your `ssh hostname` works without a prompt in a regular terminal, valley's SFTP connection will too.
+- Host aliases from `~/.ssh/config` are respected (HostName / User / Port).
 
 For tmux inside SSH, the remote tmux config also needs `set -g allow-passthrough on`.
 

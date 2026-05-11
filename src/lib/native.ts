@@ -105,5 +105,17 @@ export const native = {
       return tauriInvoke<GitDiffPayload>("git_diff", { repo, path, mode });
     },
   },
+  ssh: {
+    /** SFTP listing on a remote host. Connection is lazily opened and
+     *  cached; `host` is the alias the user knows (resolved through
+     *  ~/.ssh/config server-side). Throws on auth / connection errors
+     *  with a human-readable message. */
+    listDir(host: string, path: string): Promise<DirEntry[]> {
+      return tauriInvoke<DirEntry[]>("ssh_list_dir", { host, path });
+    },
+    disconnect(host: string): Promise<void> {
+      return tauriInvoke("ssh_disconnect", { host });
+    },
+  },
   Channel,
 };

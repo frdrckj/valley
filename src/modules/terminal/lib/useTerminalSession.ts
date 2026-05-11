@@ -64,7 +64,7 @@ export interface UseTerminalSessionOptions {
   container: React.RefObject<HTMLDivElement | null>;
   visible: boolean;
   initialCwd?: string;
-  onCwd?: (cwd: string) => void;
+  onCwd?: (cwd: string, host: string) => void;
   onExit?: (code: number | null) => void;
   onSearchReady?: (addon: SearchAddon) => void;
   /** Fired the first time a `http(s)://localhost…` URL appears in the
@@ -288,15 +288,15 @@ export function useTerminalSession({
       }
 
       const oscDispose = attachOscHandlers(term, {
-        onCwd: (next) => {
-          onCwdRef.current?.(next);
+        onCwd: (next, host) => {
+          onCwdRef.current?.(next, host);
           // Mirror cwd into the owning tab so the file explorer + other
           // chrome can subscribe via useTabs. Sessions are named
           // `pty-<tabId>`; strip the prefix to recover the tab id.
           const tabId = sessionId.startsWith("pty-")
             ? sessionId.slice(4)
             : null;
-          if (tabId) useTabs.getState().setCwd(tabId, next);
+          if (tabId) useTabs.getState().setCwd(tabId, next, host);
         },
         onPromptStart: () => tracker.onPromptStart(),
         onCommandStart: () => tracker.onCommandStart(),

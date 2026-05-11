@@ -1,8 +1,10 @@
 import type { Terminal as XTerm } from "@xterm/xterm";
 
 export interface OscEvents {
-  /** Fired whenever the shell reports its cwd via OSC 7. */
-  onCwd?: (cwd: string) => void;
+  /** Fired whenever the shell reports its cwd via OSC 7. The host
+   *  field comes from the URI's authority — used by the sidebar to
+   *  decide local vs SFTP. Empty string when the URI omits it. */
+  onCwd?: (cwd: string, host: string) => void;
   /** Fired on OSC 133 A — prompt about to render. The block tracker
    *  should register a marker at the current line. */
   onPromptStart?: () => void;
@@ -21,8 +23,10 @@ export interface OscEvents {
  */
 export function attachOscHandlers(term: XTerm, ev: OscEvents): () => void {
   const dispose7 = term.parser.registerOscHandler(7, (data) => {
-    const m = /^file:\/\/[^/]*(.*)$/.exec(data);
-    if (m && m[1]) ev.onCwd?.(decodeURIComponent(m[1]));
+    // Capture host AND path separately. Path is what most callers want;
+    // host is what the sidebar consults to fall back to SFTP.
+    const m = /^file:\/\/([^/]*)(.*)$/.exec(data);
+    if (m && m[2]) ev.onCwd?.(decodeURIComponent(m[2]), m[1] ?? "");
     return true;
   });
 

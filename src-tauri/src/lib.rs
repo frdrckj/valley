@@ -40,6 +40,7 @@ pub fn run() {
         )
         .plugin(tauri_plugin_opener::init())
         .manage(modules::pty::PtyState::default())
+        .manage(modules::ssh::SshState::default())
         .invoke_handler(tauri::generate_handler![
             modules::pty::session::pty_open,
             modules::pty::session::pty_write,
@@ -64,6 +65,8 @@ pub fn run() {
             modules::git::git_repo_root,
             modules::git::git_status,
             modules::git::git_diff,
+            modules::ssh::ssh_list_dir,
+            modules::ssh::ssh_disconnect,
             open_settings_window,
         ])
         .run(tauri::generate_context!())

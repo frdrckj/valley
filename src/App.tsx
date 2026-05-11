@@ -215,6 +215,9 @@ export default function App() {
   const activeCwd = useTabs(
     (s) => s.tabs.find((t) => t.id === s.activeId)?.cwd ?? null,
   );
+  const activeCwdHost = useTabs(
+    (s) => s.tabs.find((t) => t.id === s.activeId)?.cwdHost ?? "",
+  );
   const explorerRoot = activeCwd ?? WORKSPACE_ROOT;
 
   useEffect(() => {
@@ -366,6 +369,7 @@ export default function App() {
     aiSide,
     aiPending,
     explorerRoot,
+    explorerHost: activeCwdHost,
   });
 
   return (
@@ -432,13 +436,19 @@ function composeBodyPanes(opts: {
   aiSide: Side;
   aiPending: boolean;
   explorerRoot: string;
+  explorerHost: string;
 }): { left: ReactNode[]; right: ReactNode[] } {
   const left: ReactNode[] = [];
   const right: ReactNode[] = [];
 
   if (opts.showSidebar) {
     const tree = (
-      <FileTree key="explorer" root={opts.explorerRoot} side={opts.sidebarSide} />
+      <FileTree
+        key="explorer"
+        root={opts.explorerRoot}
+        host={opts.explorerHost}
+        side={opts.sidebarSide}
+      />
     );
     if (opts.sidebarSide === "left") left.push(tree);
     else right.push(tree);

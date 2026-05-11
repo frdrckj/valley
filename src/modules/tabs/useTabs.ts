@@ -6,6 +6,10 @@ export type Tab = {
   id: string;
   kind: "terminal" | "preview" | "file" | "diff";
   cwd?: string;
+  /** Hostname the cwd lives on (from OSC 7's URI authority). Empty
+   *  string for local. Set on remote SSH sessions; the sidebar
+   *  consults it to decide between local fs and SFTP. */
+  cwdHost?: string;
   label: string;
   panes: Pane;
   /** Preview-tab url. Ignored for terminal tabs. */
@@ -28,7 +32,7 @@ interface TabsState {
   activate(id: string): void;
   rename(id: string, label: string): void;
   setPanes(id: string, panes: Pane): void;
-  setCwd(id: string, cwd: string): void;
+  setCwd(id: string, cwd: string, host?: string): void;
   setUrl(id: string, url: string): void;
   setDirty(id: string, dirty: boolean): void;
 }
@@ -88,16 +92,18 @@ export const useTabs = create<TabsState>((set, get) => ({
   setPanes(id, panes) {
     set({ tabs: get().tabs.map((t) => (t.id === id ? { ...t, panes } : t)) });
   },
-  setCwd(id, cwd) {
+  setCwd(id, cwd, host) {
     const t = get().tabs.find((t) => t.id === id);
-    if (!t || t.cwd === cwd) return;
+    if (!t) return;
+    const cwdHost = host ?? "";
+    if (t.cwd === cwd && (t.cwdHost ?? "") === cwdHost) return;
     // Auto-update the label from cwd unless the user explicitly renamed it.
     // Preview tabs handle their own labelling (via the hostname).
     const label =
       t.kind === "terminal" && !t.userRenamed ? labelFromCwd(cwd) : t.label;
     set({
       tabs: get().tabs.map((t) =>
-        t.id === id ? { ...t, cwd, label } : t,
+        t.id === id ? { ...t, cwd, cwdHost, label } : t,
       ),
     });
   },

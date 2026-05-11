@@ -5,3 +5,4 @@ pub mod fs;
 pub mod secrets;
 pub mod shell;
 pub mod git;
+pub mod ssh;

@@ -1367,6 +1367,49 @@
 .vy-block-gutter-mark.is-fail { opacity: 0.95; }
 .vy-block-gutter-mark:hover   { opacity: 1; }
 
+/* "connecting…" shown while the SFTP backend is opening a session. */
+.vy-tree-status {
+  padding: 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font: 400 12px var(--font-mono);
+}
+.vy-tree-status-title {
+  color: var(--text-strong);
+  font-weight: 500;
+}
+.vy-tree-status-title::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  vertical-align: middle;
+  animation: vy-tree-pulse 1s ease-in-out infinite;
+}
+@keyframes vy-tree-pulse {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 1; }
+}
+.vy-tree-status-sub {
+  color: var(--text-muted);
+  font-size: 11px;
+  word-break: break-all;
+}
+
+/* Host pill in the EXPLORER header when the sidebar is showing a
+   remote SFTP listing. Just a quiet amber marker — the user already
+   knows from the status bar that they're remote. */
+.vy-tree-head-host {
+  margin-left: 6px;
+  color: var(--accent-primary);
+  font-size: 10px;
+  opacity: 0.85;
+}
+
 /* Tree empty/error state when the active cwd isn't on this machine
    (most commonly: user SSH'd somewhere). Status bar still shows the
    path; the sidebar just can't walk a remote filesystem. */

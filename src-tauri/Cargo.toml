@@ -1,6 +1,6 @@
 [package]
 name = "valley"
-version = "0.1.2"
+version = "0.2.0"
 description = "Valley — a lightweight, AI-aware desktop terminal for macOS"
 authors = ["frederickjerusha"]
 edition = "2021"
@@ -32,10 +32,15 @@ grep-regex = "0.1"
 grep-searcher = "0.1"
 grep-matcher = "0.1"
 git2 = { version = "0.20", default-features = false, features = ["vendored-libgit2"] }
+# SSH/SFTP client for the remote sidebar — pure-Rust, async, agent-friendly.
+russh = "0.50"
+russh-sftp = "2"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "net", "io-util", "fs"] }
+async-trait = "0.1"
+home = "0.5"
 
 [dev-dependencies]
 tempfile = "3"
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 keyring = { version = "3.6", default-features = false, features = ["apple-native"] }
