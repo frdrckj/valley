@@ -263,9 +263,12 @@ export const SHORTCUTS: Shortcut[] = [
   {
     id: "decode.open",
     label: "Decode panel",
-    keys: ["⌘", "⇧", "D"],
+    keys: ["⌘", "⇧", "X"],
+    // ⌘⇧D was originally specced but split.horizontal already owns it
+    // (and matches earlier in this list, so it'd shadow decode). X is
+    // free; mnemonic = "decoder / x-ray".
     group: "General",
-    match: (e) => isMod(e) && e.shiftKey && e.key.toLowerCase() === "d",
+    match: (e) => isMod(e) && e.shiftKey && e.key.toLowerCase() === "x",
   },
   {
     id: "snippets.open",
