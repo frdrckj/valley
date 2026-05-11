@@ -488,6 +488,32 @@
 .vy-aipanel-composer .input { background: transparent; border: none; }
 .vy-aipanel-composer .input:focus { box-shadow: none; }
 
+/* "Clear conversation" pill in the AI panel header. Disabled when
+   the chat is already empty so an accidental click on a fresh panel
+   doesn't pop the confirm dialog. */
+.vy-aipanel-clear {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font: 500 11px var(--font-mono);
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background var(--dur-fast), color var(--dur-fast);
+}
+.vy-aipanel-clear:hover:not(:disabled) {
+  background: var(--hover-tint);
+  color: var(--text-primary);
+}
+.vy-aipanel-clear:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 /* Stop button shown in place of the send icon while the model is
    actively streaming. Click or press Esc inside the input to cancel. */
 .vy-aipanel-stop {

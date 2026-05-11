@@ -7,7 +7,7 @@ import type { Side } from "@/lib/layout";
 import { useSettings } from "@/lib/settings";
 import type { AppMessage } from "./lib/transport";
 import { getActiveSession, createSession, hydrateSessions } from "./lib/sessions";
-import { getOrCreateChat } from "./store/chatStore";
+import { getOrCreateChat, clearChat } from "./store/chatStore";
 import { useAiContext } from "./store/contextStore";
 import { keyring, type Provider } from "./lib/keyring";
 import { MessageList } from "./components/MessageList";
@@ -32,6 +32,23 @@ type InitState =
 export function AiPanel({ width = 360, side = "right" }: AiPanelProps) {
   const provider = useSettings().defaultProvider as Provider;
   const [state, setState] = useState<InitState>({ kind: "loading" });
+  // Bump on "clear chat" to force the init effect to re-run with a
+  // fresh Chat instance instead of the cached one in chatStore.
+  const [resetTick, setResetTick] = useState(0);
+  const sessionIdRef = useRef<string | null>(null);
+
+  async function handleClearChat() {
+    const sid = sessionIdRef.current;
+    if (!sid) return;
+    if (
+      !window.confirm(
+        "clear all messages in this conversation? this can't be undone.",
+      )
+    )
+      return;
+    await clearChat(sid);
+    setResetTick((t) => t + 1);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -51,6 +68,7 @@ export function AiPanel({ width = 360, side = "right" }: AiPanelProps) {
         let session = await getActiveSession();
         if (!session) session = await createSession({ title: "untitled" });
         if (cancelled) return;
+        sessionIdRef.current = session.id;
         const chat = await getOrCreateChat(session.id);
         if (cancelled) return;
         setState({ kind: "ready", chat });
@@ -65,7 +83,7 @@ export function AiPanel({ width = 360, side = "right" }: AiPanelProps) {
     return () => {
       cancelled = true;
     };
-  }, [provider]);
+  }, [provider, resetTick]);
 
   if (state.kind === "loading") {
     return <div className="vy-aipanel" data-side={side} style={{ width }} />;
@@ -118,17 +136,26 @@ export function AiPanel({ width = 360, side = "right" }: AiPanelProps) {
     );
   }
 
-  return <AiPanelInner chat={state.chat} side={side} width={width} />;
+  return (
+    <AiPanelInner
+      chat={state.chat}
+      side={side}
+      width={width}
+      onClear={() => void handleClearChat()}
+    />
+  );
 }
 
 function AiPanelInner({
   chat,
   side,
   width,
+  onClear,
 }: {
   chat: Chat<AppMessage>;
   side: Side;
   width: number;
+  onClear: () => void;
 }) {
   const {
     messages,
@@ -182,6 +209,16 @@ function AiPanelInner({
       <div className="vy-aipanel-head">
         <Icon name="sparkle" size={13} style={{ color: "var(--accent-ai)" }} />
         <span style={{ color: "var(--text-strong)", fontWeight: 500 }}>valley</span>
+        <button
+          type="button"
+          className="vy-aipanel-clear"
+          onClick={onClear}
+          title="Clear conversation"
+          disabled={messages.length === 0}
+        >
+          <Icon name="x" size={11} />
+          <span>clear</span>
+        </button>
       </div>
       <div className="vy-aipanel-body">
         <MessageList messages={messages} onApprove={handleApprove} />

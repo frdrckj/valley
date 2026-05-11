@@ -2,7 +2,7 @@ import { Chat } from "@ai-sdk/react";
 import { keyring, type Provider } from "../lib/keyring";
 import { makeDirectTransport, type AppMessage } from "../lib/transport";
 import { buildAgent } from "../lib/agent";
-import { loadMessages, saveMessages } from "../lib/sessions";
+import { loadMessages, saveMessages, clearMessages } from "../lib/sessions";
 import { getSettingsSnapshot } from "@/lib/settings";
 import { getLive } from "@/lib/workspace";
 
@@ -41,4 +41,13 @@ export async function getOrCreateChat(
 
 export function disposeAllChats() {
   chats.clear();
+}
+
+/** Drop the cached Chat instance for a session AND wipe its persisted
+ *  messages. The next `getOrCreateChat` call re-instantiates a fresh
+ *  Chat with no history. Caller is responsible for re-rendering the
+ *  panel (usually by forcing a key bump on AiPanel). */
+export async function clearChat(sessionId: string): Promise<void> {
+  chats.delete(sessionId);
+  await clearMessages(sessionId);
 }

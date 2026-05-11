@@ -95,3 +95,15 @@ export async function saveMessages<T>(id: string, messages: T[]) {
     await persist();
   }
 }
+
+/** Wipe a session's persisted messages, keep the session metadata. */
+export async function clearMessages(id: string) {
+  const s = await getStore();
+  await s.delete(`messages:${id}`);
+  await s.save();
+  const idx = list.findIndex((m) => m.id === id);
+  if (idx >= 0) {
+    list[idx] = { ...list[idx], updatedMs: Date.now() };
+    await persist();
+  }
+}
