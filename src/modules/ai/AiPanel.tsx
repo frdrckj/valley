@@ -138,6 +138,11 @@ export function AiPanel({ width = 360, side = "right" }: AiPanelProps) {
 
   return (
     <AiPanelInner
+      // key bumps on "clear" so React unmounts the inner panel (and
+      // its useChat subscription) and mounts fresh against the new
+      // Chat instance. Without this, useChat sometimes clings to the
+      // old chat's snapshot even after the prop reference changed.
+      key={resetTick}
       chat={state.chat}
       side={side}
       width={width}
