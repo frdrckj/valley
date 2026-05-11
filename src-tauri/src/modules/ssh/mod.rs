@@ -23,6 +23,10 @@ use tokio::net::UnixStream;
 mod config;
 
 const CONNECT_TIMEOUT_SECS: u64 = 10;
+/// Per-operation deadline. Without this, a half-dead TCP connection
+/// (remote crashed, laptop just woke up, NAT reset, etc.) makes the
+/// sidebar hang for tens of seconds while russh waits on byte reads.
+const OPERATION_TIMEOUT_SECS: u64 = 8;
 
 /// Returned to the TS side from `ssh_list_dir`. Same shape as the
 /// local fs DirEntry so the sidebar can render either source.
@@ -160,18 +164,41 @@ pub async fn ssh_list_dir(
     host: String,
     path: String,
 ) -> Result<Vec<SshDirEntry>, String> {
-    let conn = get_or_connect(&state, &host).await?;
-    let conn = conn.lock().await;
-    let mut entries = conn
-        .sftp
-        .read_dir(&path)
-        .await
-        .map_err(|e| format!("sftp read_dir {path}: {e}"))?
-        .collect::<Vec<_>>();
+    // If we already had a connection cached and it fails (remote
+    // rebooted, laptop slept, etc.), evict and try once more with a
+    // fresh handshake. New connections get one shot — no retry loop.
+    let was_cached = state.conns.lock().contains_key(&host);
+    match list_dir_inner(&state, &host, &path).await {
+        Ok(out) => Ok(out),
+        Err(first) if was_cached => {
+            state.conns.lock().remove(&host);
+            list_dir_inner(&state, &host, &path)
+                .await
+                .map_err(|second| format!("{first}; reconnect failed: {second}"))
+        }
+        Err(e) => Err(e),
+    }
+}
 
+async fn list_dir_inner(
+    state: &SshState,
+    host: &str,
+    path: &str,
+) -> Result<Vec<SshDirEntry>, String> {
+    let conn = get_or_connect(state, host).await?;
+    let conn = conn.lock().await;
+    let entries_iter = tokio::time::timeout(
+        std::time::Duration::from_secs(OPERATION_TIMEOUT_SECS),
+        conn.sftp.read_dir(path),
+    )
+    .await
+    .map_err(|_| format!("sftp read_dir timeout: {path}"))?
+    .map_err(|e| format!("sftp read_dir {path}: {e}"))?;
+
+    let mut entries: Vec<_> = entries_iter.collect();
     let mut out: Vec<SshDirEntry> = Vec::with_capacity(entries.len());
     let base = if path.ends_with('/') {
-        path.clone()
+        path.to_string()
     } else {
         format!("{path}/")
     };
