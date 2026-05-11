@@ -257,7 +257,6 @@ function AiPanelInner({
         )}
       </div>
       <div className="vy-aipanel-composer">
-        <Icon name="clip" size={13} style={{ color: "var(--text-muted)" }} />
         <input
           ref={inputRef}
           className="input"
