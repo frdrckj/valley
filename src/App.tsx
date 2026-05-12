@@ -30,7 +30,7 @@ import { DecodePanel } from "@/modules/decode/DecodePanel";
 import { useDecodePanel } from "@/modules/decode/useDecodePanel";
 import { EngagementDialog } from "@/modules/engagement/EngagementDialog";
 import { useEngagementDialog } from "@/modules/engagement/useEngagementDialog";
-import { hydrateEngagements } from "@/modules/engagement/useEngagement";
+import { hydrateEngagements, useEngagement } from "@/modules/engagement/useEngagement";
 import { SnippetPalette } from "@/modules/snippets/SnippetPalette";
 import { useSnippetPalette } from "@/modules/snippets/lib/useSnippetPalette";
 import { SearchBar } from "@/modules/terminal/SearchBar";
@@ -191,7 +191,17 @@ export default function App() {
   const activeCwdHost = useTabs(
     (s) => s.tabs.find((t) => t.id === s.activeId)?.cwdHost ?? "",
   );
-  const explorerRoot = activeCwd ?? WORKSPACE_ROOT;
+  // The active engagement, when set, parks the explorer at its
+  // workspace folder regardless of where the focused terminal happens
+  // to be `cd`'d. Decoupling explorer ←→ terminal cwd lets the operator
+  // roam (`cd /tmp`, `cd /var/log`) without losing sight of their
+  // notes/loot directory. Falls back to the terminal cwd when there's
+  // no active engagement (preserves the v0.3.x default for one-off use).
+  const activeEngagement = useEngagement((s) => s.active());
+  const engRootDir = activeEngagement?.rootDir ?? "";
+  const engHost = activeEngagement?.host ?? "";
+  const explorerRoot = engRootDir || activeCwd || WORKSPACE_ROOT;
+  const explorerHost = engHost || activeCwdHost;
 
   useEffect(() => {
     void hydrateSettings();
@@ -331,7 +341,7 @@ export default function App() {
     aiPending,
     aiWidth,
     explorerRoot,
-    explorerHost: activeCwdHost,
+    explorerHost,
   });
 
   return (

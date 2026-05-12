@@ -2,7 +2,7 @@
 /// We only handle the literal-tilde case; the shell already expands
 /// real arguments before they reach a command. Engagement forms collect
 /// raw text from the user, so the renderer never sees the expanded form.
-fn expand_tilde(path: &str) -> String {
+pub fn expand_tilde(path: &str) -> String {
     if path == "~" {
         return home::home_dir()
             .map(|p| p.to_string_lossy().into_owned())

@@ -189,6 +189,12 @@ async fn list_dir_inner(
 ) -> Result<Vec<SshDirEntry>, String> {
     let conn = get_or_connect(state, host).await?;
     let conn = conn.lock().await;
+    // Engagement-stored paths can be `~/engagements/<slug>` — expand
+    // against the SSH user's home so callers don't need to know the
+    // remote's absolute layout. Defined-once in sftp_expand_tilde,
+    // shared with ssh_create_dir.
+    let resolved = sftp_expand_tilde(&conn.sftp, path).await?;
+    let path = resolved.as_str();
     let entries_iter = tokio::time::timeout(
         std::time::Duration::from_secs(OPERATION_TIMEOUT_SECS),
         conn.sftp.read_dir(path),
@@ -227,6 +233,30 @@ async fn list_dir_inner(
     Ok(out)
 }
 
+/// Expand a leading `~` against the SSH user's home (resolved via SFTP
+/// `canonicalize(".")` so we never need to spawn a remote shell). Passes
+/// anything else through unchanged.
+async fn sftp_expand_tilde(
+    sftp: &SftpSession,
+    path: &str,
+) -> Result<String, String> {
+    if path != "~" && !path.starts_with("~/") {
+        return Ok(path.to_string());
+    }
+    let home = tokio::time::timeout(
+        std::time::Duration::from_secs(OPERATION_TIMEOUT_SECS),
+        sftp.canonicalize("."),
+    )
+    .await
+    .map_err(|_| "sftp canonicalize . timeout".to_string())?
+    .map_err(|e| format!("sftp canonicalize .: {e}"))?;
+    if path == "~" {
+        Ok(home)
+    } else {
+        Ok(format!("{}/{}", home.trim_end_matches('/'), &path[2..]))
+    }
+}
+
 /// Recursive remote mkdir. SFTP's MKDIR is single-level only, so we
 /// walk the path segments and `create_dir` each one — ignoring "file
 /// already exists" errors so the call is idempotent like Rust's
@@ -239,25 +269,7 @@ async fn create_dir_all_inner(
     let conn = get_or_connect(state, host).await?;
     let conn = conn.lock().await;
 
-    // Tilde expansion. We could shell-expand on the remote, but
-    // SFTP gives us a clean `canonicalize(".")` for the user's home
-    // and that's cheaper than spawning a remote shell.
-    let resolved = if path == "~" || path.starts_with("~/") {
-        let home = tokio::time::timeout(
-            std::time::Duration::from_secs(OPERATION_TIMEOUT_SECS),
-            conn.sftp.canonicalize("."),
-        )
-        .await
-        .map_err(|_| "sftp canonicalize . timeout".to_string())?
-        .map_err(|e| format!("sftp canonicalize .: {e}"))?;
-        if path == "~" {
-            home
-        } else {
-            format!("{}/{}", home.trim_end_matches('/'), &path[2..])
-        }
-    } else {
-        path.to_string()
-    };
+    let resolved = sftp_expand_tilde(&conn.sftp, path).await?;
 
     // Split into cumulative segments and try each. We MUST proceed past
     // "file exists" — that's the expected case for parent dirs.

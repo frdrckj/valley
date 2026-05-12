@@ -7,6 +7,7 @@ import {
 } from "react";
 import { Icon } from "@/components/Icon";
 import { useTabs } from "@/modules/tabs/useTabs";
+import { useEngagement } from "@/modules/engagement/useEngagement";
 import { useOmnibar } from "./lib/useOmnibar";
 import {
   getOpenTabs,
@@ -87,29 +88,42 @@ export function Omnibar() {
   const abortRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Active terminal's cwd (null when not detected — e.g. brand-new shell
-  // that hasn't emitted OSC 7 yet, or no terminal tab focused). When null
-  // we skip the cwd walk entirely rather than falling back to root, which
-  // would otherwise BFS the user's home dir.
-  const activeCwdRef = useRef<string | null>(
-    useTabs.getState().tabs.find(
-      (t) => t.id === useTabs.getState().activeId && t.kind === "terminal",
-    )?.cwd ?? null,
-  );
+  // Recent / walk / modified scope. When an engagement is active, its
+  // rootDir is the stable filing cabinet — we scope to that. Falls back
+  // to the active terminal's cwd otherwise. `host` is non-empty only
+  // for SSH-rooted engagements; we read it so the file walk knows not
+  // to try a local readdir (the path won't exist on the Mac).
+  const scopeRef = useRef<{ cwd: string | null; host: string }>({
+    cwd: null,
+    host: "",
+  });
+
+  function readScope(): { cwd: string | null; host: string } {
+    const eng = useEngagement.getState().active();
+    if (eng?.rootDir) return { cwd: eng.rootDir, host: eng.host ?? "" };
+    const cwd =
+      useTabs.getState().tabs.find(
+        (t) => t.id === useTabs.getState().activeId && t.kind === "terminal",
+      )?.cwd ?? null;
+    return { cwd, host: "" };
+  }
+
+  // Initial snapshot before first render so seed values are right.
+  if (scopeRef.current.cwd === null && scopeRef.current.host === "") {
+    scopeRef.current = readScope();
+  }
 
   // Auto-focus on open; reset state on each open.
   useEffect(() => {
     if (!isOpen) return;
     setQuery("");
     setActiveIdx(0);
-    // Update cwd snapshot on each open BEFORE seeding recents — recents
-    // are scoped to that cwd so the user doesn't see paths from a
-    // different project they were in earlier.
-    const cwd =
-      useTabs.getState().tabs.find(
-        (t) => t.id === useTabs.getState().activeId && t.kind === "terminal",
-      )?.cwd ?? null;
-    activeCwdRef.current = cwd;
+    // Update scope snapshot on each open BEFORE seeding recents — recents
+    // are scoped so the user doesn't see paths from a different project
+    // they were in earlier.
+    const scope = readScope();
+    scopeRef.current = scope;
+    const cwd = scope.cwd;
     setGroups({
       tabs: getOpenTabs(),
       recent: getRecentItems(cwd),
@@ -136,7 +150,7 @@ export function Omnibar() {
   // Recompute results whenever query changes.
   const computeResults = useCallback((q: string) => {
     const tabs = getOpenTabs();
-    const recent = getRecentItems(activeCwdRef.current);
+    const recent = getRecentItems(scopeRef.current.cwd);
     const commands = getCommands();
 
     if (q.trim() === "") {
@@ -164,10 +178,15 @@ export function Omnibar() {
 
     debounceRef.current = setTimeout(() => {
       debounceRef.current = null;
-      const cwd = activeCwdRef.current;
-      // No cwd detected → don't walk. Avoids accidentally BFS'ing all of
-      // ~ when the active terminal hasn't reported its cwd yet.
+      const { cwd, host } = scopeRef.current;
+      // No cwd → no walk. Avoids accidentally BFS'ing all of ~ before
+      // the active terminal has emitted its first OSC 7.
       if (!cwd) return;
+      // Remote engagements: skip the file walk and git-modified pass.
+      // walkCwd uses local readdir and getModifiedFiles uses libgit2 —
+      // neither knows how to traverse SFTP yet. Tabs + recents + commands
+      // still light up so search remains useful.
+      if (host) return;
       const ac = new AbortController();
       abortRef.current = ac;
       void walkCwd(cwd, ac.signal).then((walked) => {

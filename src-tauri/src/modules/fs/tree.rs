@@ -12,6 +12,10 @@ pub struct DirEntry {
 
 #[tauri::command]
 pub async fn fs_read_dir(path: String) -> Result<Vec<DirEntry>, String> {
+    // Engagement-stored paths use a literal `~` so the user can move
+    // their store between hosts; expand here so the rest of the
+    // pipeline sees an absolute path.
+    let path = super::mutate::expand_tilde(&path);
     let mut entries: Vec<DirEntry> = Vec::new();
     let read = std::fs::read_dir(&path).map_err(|e| format!("read_dir {path}: {e}"))?;
     for ent in read {
