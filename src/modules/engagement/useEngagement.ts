@@ -7,6 +7,11 @@ export interface Engagement {
   name: string;
   scope: string[];
   rootDir: string;
+  /** Optional SSH host (e.g. "kali") when the engagement's workspace
+   *  lives on a remote machine. Empty / undefined = local Mac path.
+   *  Set when the operator works primarily through SSH and wants the
+   *  workspace folder on the remote, not a local mirror. */
+  host?: string;
   notes: string;
   createdMs: number;
   updatedMs: number;
@@ -16,7 +21,7 @@ interface EngagementState {
   engagements: Engagement[];
   activeId: string | null;
   active: () => Engagement | null;
-  create(input: Pick<Engagement, "name" | "scope" | "rootDir">): Promise<Engagement>;
+  create(input: Pick<Engagement, "name" | "scope" | "rootDir"> & { host?: string }): Promise<Engagement>;
   update(id: string, patch: Partial<Engagement>): Promise<void>;
   setActive(id: string | null): Promise<void>;
   remove(id: string): Promise<void>;
@@ -60,22 +65,33 @@ export const useEngagement = create<EngagementState>((set, get) => ({
 
   async create(input) {
     const now = Date.now();
+    const host = input.host?.trim() || undefined;
     const eng: Engagement = {
       id: genId(),
       name: input.name,
       scope: input.scope,
       rootDir: input.rootDir,
+      host,
       notes: "",
       createdMs: now,
       updatedMs: now,
     };
-    // Materialize the root directory on disk so recents/explorer have
-    // somewhere real to land. Tilde is expanded by the Rust command, so
-    // user-typed `~/engagements/foo` works as-is. Failures bubble up so
+    // Materialize the root directory so recents/explorer have somewhere
+    // real to land. Route depends on `host`:
+    //   - host set → SFTP mkdir over the cached SSH connection (so the
+    //     workspace lands on the remote box the operator is actually
+    //     working from).
+    //   - host empty → local macOS mkdir (Valley keeps notes on the Mac).
+    // Tilde is expanded on the appropriate side. Failures bubble up so
     // the dialog can surface a path error instead of leaving a record
     // pointing at a directory that doesn't exist.
-    if (input.rootDir.trim()) {
-      await native.fs.createDir(input.rootDir.trim());
+    const path = input.rootDir.trim();
+    if (path) {
+      if (host) {
+        await native.ssh.createDir(host, path);
+      } else {
+        await native.fs.createDir(path);
+      }
     }
     set((s) => ({
       engagements: [eng, ...s.engagements],
@@ -86,14 +102,32 @@ export const useEngagement = create<EngagementState>((set, get) => ({
   },
 
   async update(id, patch) {
-    // When the rootDir changes (or is set for the first time on an old
-    // record), mkdir it so the explorer + recents have a destination.
+    // When rootDir changes (or host swap moves the workspace to a
+    // different machine), mkdir it on the side that will own it. We
+    // consult the *patched* host to know where the new path should
+    // live — falling back to the current record's host if the patch
+    // doesn't touch it.
     if (typeof patch.rootDir === "string" && patch.rootDir.trim()) {
-      await native.fs.createDir(patch.rootDir.trim());
+      const current = get().engagements.find((e) => e.id === id);
+      const host = (patch.host ?? current?.host ?? "").trim() || undefined;
+      const path = patch.rootDir.trim();
+      if (host) {
+        await native.ssh.createDir(host, path);
+      } else {
+        await native.fs.createDir(path);
+      }
     }
     set((s) => ({
       engagements: s.engagements.map((e) =>
-        e.id === id ? { ...e, ...patch, updatedMs: Date.now() } : e,
+        e.id === id
+          ? {
+              ...e,
+              ...patch,
+              // Empty string for host should clear it, not stick around.
+              host: patch.host !== undefined ? (patch.host.trim() || undefined) : e.host,
+              updatedMs: Date.now(),
+            }
+          : e,
       ),
     }));
     await persistNow();

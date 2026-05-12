@@ -43,12 +43,21 @@ export function StatusBar({ aiState = "ready" }: StatusBarProps) {
       {activeEngagement && (
         <button
           type="button"
-          className="vy-statusbar-engagement"
+          className={`vy-statusbar-engagement${activeEngagement.host ? " is-remote" : ""}`}
           onClick={openEngagementSwitch}
-          title={`Engagement: ${activeEngagement.name} — click to switch`}
+          title={
+            activeEngagement.host
+              ? `Engagement: ${activeEngagement.name} — workspace on ${activeEngagement.host} (${activeEngagement.rootDir}) — click to switch`
+              : `Engagement: ${activeEngagement.name} (${activeEngagement.rootDir}) — click to switch`
+          }
         >
           <Icon name="pin" size={11} />
           {activeEngagement.name}
+          {activeEngagement.host && (
+            <span className="vy-statusbar-engagement-host">
+              @{activeEngagement.host}
+            </span>
+          )}
           <span className="vy-statusbar-engagement-scope">
             · {activeEngagement.scope.length} in scope
           </span>

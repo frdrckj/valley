@@ -1,9 +1,11 @@
-//! SSH/SFTP backend for the remote sidebar.
+//! SSH/SFTP backend for the remote sidebar + remote engagements.
 //!
-//! v1 scope: read-only `ssh_list_dir`. Authentication uses the local
-//! SSH agent (`SSH_AUTH_SOCK`); we do not prompt for passwords or
-//! decrypt passphrase-protected keyfiles. If the user's `ssh hostname`
-//! works without a prompt in their shell, our connection works.
+//! Commands: `ssh_list_dir` (sidebar), `ssh_create_dir` (engagement
+//! workspace mkdir on the remote), `ssh_disconnect`. Authentication
+//! uses the local SSH agent (`SSH_AUTH_SOCK`); we do not prompt for
+//! passwords or decrypt passphrase-protected keyfiles. If the user's
+//! `ssh hostname` works without a prompt in their shell, our
+//! connection works.
 //!
 //! ssh config (`~/.ssh/config`) HostName/User/Port aliases are resolved
 //! by a small parser in `config.rs` so users can type `ssh prod` and
@@ -223,6 +225,93 @@ async fn list_dir_inner(
         _ => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
     });
     Ok(out)
+}
+
+/// Recursive remote mkdir. SFTP's MKDIR is single-level only, so we
+/// walk the path segments and `create_dir` each one — ignoring "file
+/// already exists" errors so the call is idempotent like Rust's
+/// `create_dir_all`. Symlink targets and permission errors propagate.
+async fn create_dir_all_inner(
+    state: &SshState,
+    host: &str,
+    path: &str,
+) -> Result<(), String> {
+    let conn = get_or_connect(state, host).await?;
+    let conn = conn.lock().await;
+
+    // Tilde expansion. We could shell-expand on the remote, but
+    // SFTP gives us a clean `canonicalize(".")` for the user's home
+    // and that's cheaper than spawning a remote shell.
+    let resolved = if path == "~" || path.starts_with("~/") {
+        let home = tokio::time::timeout(
+            std::time::Duration::from_secs(OPERATION_TIMEOUT_SECS),
+            conn.sftp.canonicalize("."),
+        )
+        .await
+        .map_err(|_| "sftp canonicalize . timeout".to_string())?
+        .map_err(|e| format!("sftp canonicalize .: {e}"))?;
+        if path == "~" {
+            home
+        } else {
+            format!("{}/{}", home.trim_end_matches('/'), &path[2..])
+        }
+    } else {
+        path.to_string()
+    };
+
+    // Split into cumulative segments and try each. We MUST proceed past
+    // "file exists" — that's the expected case for parent dirs.
+    let mut acc = if resolved.starts_with('/') {
+        String::from("/")
+    } else {
+        String::new()
+    };
+    for seg in resolved.split('/').filter(|s| !s.is_empty()) {
+        if !acc.is_empty() && !acc.ends_with('/') {
+            acc.push('/');
+        }
+        acc.push_str(seg);
+        match tokio::time::timeout(
+            std::time::Duration::from_secs(OPERATION_TIMEOUT_SECS),
+            conn.sftp.create_dir(acc.clone()),
+        )
+        .await
+        {
+            Ok(Ok(())) => {}
+            Ok(Err(e)) => {
+                // FILE_ALREADY_EXISTS / PERMISSION_DENIED — first one is
+                // fine, second only matters at the leaf. russh-sftp's
+                // Error::Display includes the SFTP status; we match
+                // lossily on the substring rather than crack it open.
+                let msg = e.to_string();
+                if msg.contains("already exists") || msg.contains("AlreadyExists") {
+                    continue;
+                }
+                return Err(format!("sftp mkdir {acc}: {msg}"));
+            }
+            Err(_) => return Err(format!("sftp mkdir {acc}: timeout")),
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn ssh_create_dir(
+    state: tauri::State<'_, SshState>,
+    host: String,
+    path: String,
+) -> Result<(), String> {
+    let was_cached = state.conns.lock().contains_key(&host);
+    match create_dir_all_inner(&state, &host, &path).await {
+        Ok(()) => Ok(()),
+        Err(first) if was_cached => {
+            state.conns.lock().remove(&host);
+            create_dir_all_inner(&state, &host, &path)
+                .await
+                .map_err(|second| format!("{first}; reconnect failed: {second}"))
+        }
+        Err(e) => Err(e),
+    }
 }
 
 #[tauri::command]

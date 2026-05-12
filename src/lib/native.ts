@@ -121,6 +121,14 @@ export const native = {
     listDir(host: string, path: string): Promise<DirEntry[]> {
       return tauriInvoke<DirEntry[]>("ssh_list_dir", { host, path });
     },
+    /** Recursive mkdir over SFTP. Tilde paths are expanded against the
+     *  remote SSH user's home (resolved via canonicalize ".").
+     *  Idempotent — re-creating an existing directory is a no-op.
+     *  Used by remote-rooted engagements so the workspace folder
+     *  lands on the host the operator is actually working from. */
+    createDir(host: string, path: string): Promise<void> {
+      return tauriInvoke("ssh_create_dir", { host, path });
+    },
     disconnect(host: string): Promise<void> {
       return tauriInvoke("ssh_disconnect", { host });
     },

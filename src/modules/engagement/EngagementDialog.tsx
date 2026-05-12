@@ -7,6 +7,7 @@ import {
 } from "react";
 import { useEngagement } from "./useEngagement";
 import { useEngagementDialog } from "./useEngagementDialog";
+import { useTabs } from "@/modules/tabs/useTabs";
 
 /** Slugify an engagement name into a filesystem-safe segment. */
 function slugify(name: string): string {
@@ -18,15 +19,25 @@ function slugify(name: string): string {
 }
 
 /**
- * Default root-dir suggestion. ALWAYS a local Mac path under the user's
- * home — engagements are a Valley-local notion (where Valley stores
- * notes/recents/AI context for this scope of work). Even when the user
- * is SSH'd to a remote box, the workspace folder lives on macOS; the
- * remote work happens through `ssh <host>` inside terminals.
+ * Default root-dir suggestion — `~/engagements/<slug>`. Same shape for
+ * local and remote engagements; the difference is which `~` it resolves
+ * against. Local: `$HOME` on the Mac. Remote: SSH user's home on the
+ * box, expanded server-side via SFTP canonicalize.
  */
 function suggestRootDir(name: string): string {
   const slug = slugify(name);
   return slug ? `~/engagements/${slug}` : "";
+}
+
+/**
+ * Active terminal's OSC-7 host, if any. Returns a non-empty string when
+ * the focused tab is inside an SSH session whose remote shell emits OSC
+ * 7 with the hostname authority (Valley's integration script does;
+ * vanilla kali zsh does not until the user installs it).
+ */
+function activeTerminalHost(): string {
+  const s = useTabs.getState();
+  return s.tabs.find((t) => t.id === s.activeId)?.cwdHost ?? "";
 }
 
 /* ------------------------------------------------------------------ */
@@ -36,19 +47,20 @@ function suggestRootDir(name: string): string {
 function NewForm({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState("");
   const [scope, setScope] = useState("");
+  // Pre-fill the host from the active terminal's OSC-7 hostname. If the
+  // operator is sitting at a kali prompt right now (with shell
+  // integration installed), the field shows "kali" by default and the
+  // engagement workspace will be created on kali — matching the
+  // mental model "I'm working over here, put my files over here."
+  const [host, setHost] = useState(activeTerminalHost);
   const [rootDir, setRootDir] = useState("");
-  // Track whether the user typed the rootDir themselves. While false, we
-  // keep regenerating it from `name` — so the field auto-fills with a
-  // sensible local default as they type. The moment they edit it, we
-  // stop overwriting their input.
+  // Track whether the user typed the rootDir themselves. While false we
+  // keep regenerating it from `name` — auto-fills the field with a
+  // sensible default as they type, until they take control.
   const [rootDirManual, setRootDirManual] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  // Live default: rootDir tracks the slugified name unless the user has
-  // taken control of the field. Avoids the trap where someone types a
-  // long engagement name and the rootDir defaults to the cwd of whichever
-  // terminal happens to be focused (especially confusing inside SSH).
   useEffect(() => {
     if (rootDirManual) return;
     setRootDir(suggestRootDir(name));
@@ -61,7 +73,12 @@ function NewForm({ onClose }: { onClose: () => void }) {
     setBusy(true);
     try {
       const scopeLines = scope.split("\n").map((l) => l.trim()).filter(Boolean);
-      await useEngagement.getState().create({ name: name.trim(), scope: scopeLines, rootDir: rootDir.trim() || "~" });
+      await useEngagement.getState().create({
+        name: name.trim(),
+        scope: scopeLines,
+        rootDir: rootDir.trim() || "~",
+        host: host.trim() || undefined,
+      });
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -70,20 +87,21 @@ function NewForm({ onClose }: { onClose: () => void }) {
     }
   }
 
-  // Heuristic: a leading `/home/`, `/root`, `/etc`, or any non-tilde
-  // absolute path that doesn't start with `/Users/` (the macOS home
-  // root) is almost certainly a remote path the user typed because they
-  // were SSH'd. Surface a hint BEFORE submit instead of waiting for the
-  // mkdir to fail with a cryptic OS error.
+  // The remote-path heuristic only fires when host is empty. With a host
+  // set, an absolute /home/... path is exactly what we want — mkdir runs
+  // over SFTP, not against macOS's autofs /home.
   const looksRemote =
-    rootDir.startsWith("/home/") ||
-    rootDir === "/root" ||
-    rootDir.startsWith("/root/") ||
-    (rootDir.startsWith("/") &&
-      !rootDir.startsWith("/Users/") &&
-      !rootDir.startsWith("/tmp") &&
-      !rootDir.startsWith("/private/") &&
-      !rootDir.startsWith("/opt/"));
+    !host.trim() &&
+    (rootDir.startsWith("/home/") ||
+      rootDir === "/root" ||
+      rootDir.startsWith("/root/") ||
+      (rootDir.startsWith("/") &&
+        !rootDir.startsWith("/Users/") &&
+        !rootDir.startsWith("/tmp") &&
+        !rootDir.startsWith("/private/") &&
+        !rootDir.startsWith("/opt/")));
+
+  const isRemote = Boolean(host.trim());
 
   return (
     <form className="vy-eng-dialog-form" onSubmit={handleSubmit}>
@@ -109,7 +127,24 @@ function NewForm({ onClose }: { onClose: () => void }) {
         <span className="vy-eng-dialog-hint">one host / CIDR per line</span>
       </label>
       <label className="vy-eng-dialog-label">
-        Root directory <span className="vy-eng-dialog-label-aside">local Mac path</span>
+        Host <span className="vy-eng-dialog-label-aside">optional · SSH alias</span>
+        <input
+          className="vy-eng-dialog-input"
+          value={host}
+          onChange={(e) => setHost(e.target.value)}
+          placeholder="kali · leave blank for local Mac"
+        />
+        <span className="vy-eng-dialog-hint">
+          {host.trim()
+            ? `Workspace will be created on ${host.trim()} via SFTP. Uses your ~/.ssh/config + ssh-agent.`
+            : "Empty = local engagement (workspace lives on your Mac)."}
+        </span>
+      </label>
+      <label className="vy-eng-dialog-label">
+        Root directory{" "}
+        <span className="vy-eng-dialog-label-aside">
+          {isRemote ? `path on ${host.trim()}` : "local Mac path"}
+        </span>
         <input
           className="vy-eng-dialog-input"
           value={rootDir}
@@ -117,14 +152,14 @@ function NewForm({ onClose }: { onClose: () => void }) {
           placeholder="~/engagements/acme"
         />
         <span className="vy-eng-dialog-hint">
-          Valley stores notes here on your Mac. Even when you SSH to a
-          remote box, the workspace folder is local — auto-filled from
-          the name; you can override.
+          {isRemote
+            ? `Created on ${host.trim()} via SFTP (recursive). \`~\` expands to the remote SSH user's home.`
+            : "Workspace folder on your Mac — created on save if it doesn't exist."}
         </span>
         {looksRemote && (
           <span className="vy-eng-dialog-warn">
-            That path looks like a remote box ({rootDir}). Engagements
-            live on your Mac — try <code>~/engagements/{slugify(name) || "<name>"}</code> instead.
+            That looks like a remote path but no Host is set. Either set
+            a host (so mkdir runs on the remote) or use <code>~/engagements/{slugify(name) || "<name>"}</code> for a local engagement.
           </span>
         )}
       </label>
@@ -238,6 +273,11 @@ function SwitchList({ onClose }: { onClose: () => void }) {
               onClick={() => void activate(eng.id)}
             >
               <span className="vy-eng-dialog-row-name">{eng.name}</span>
+              {eng.host && (
+                <span className="vy-eng-dialog-row-host" title={`Workspace on ${eng.host}`}>
+                  @{eng.host}
+                </span>
+              )}
               <span className="vy-eng-dialog-row-meta">{eng.scope.length} in scope</span>
               <button
                 type="button"
@@ -266,6 +306,7 @@ function EditForm({ onClose }: { onClose: () => void }) {
   const active = useEngagement((s) => s.active());
   const [name, setName] = useState(active?.name ?? "");
   const [scope, setScope] = useState(active?.scope.join("\n") ?? "");
+  const [host, setHost] = useState(active?.host ?? "");
   const [rootDir, setRootDir] = useState(active?.rootDir ?? "");
   const [deleteArmed, setDeleteArmed] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -278,18 +319,19 @@ function EditForm({ onClose }: { onClose: () => void }) {
     return <p className="vy-eng-dialog-empty">No active engagement to edit.</p>;
   }
 
-  // Same remote-path heuristic as the New form so editing a previously
-  // created bad engagement (or one imported from another machine) gets
-  // the same gentle nudge.
+  // Remote-path heuristic only fires when host is empty (matches NewForm).
   const editLooksRemote =
-    rootDir.startsWith("/home/") ||
-    rootDir === "/root" ||
-    rootDir.startsWith("/root/") ||
-    (rootDir.startsWith("/") &&
-      !rootDir.startsWith("/Users/") &&
-      !rootDir.startsWith("/tmp") &&
-      !rootDir.startsWith("/private/") &&
-      !rootDir.startsWith("/opt/"));
+    !host.trim() &&
+    (rootDir.startsWith("/home/") ||
+      rootDir === "/root" ||
+      rootDir.startsWith("/root/") ||
+      (rootDir.startsWith("/") &&
+        !rootDir.startsWith("/Users/") &&
+        !rootDir.startsWith("/tmp") &&
+        !rootDir.startsWith("/private/") &&
+        !rootDir.startsWith("/opt/")));
+
+  const isRemote = Boolean(host.trim());
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -298,7 +340,12 @@ function EditForm({ onClose }: { onClose: () => void }) {
     setBusy(true);
     try {
       const scopeLines = scope.split("\n").map((l) => l.trim()).filter(Boolean);
-      await useEngagement.getState().update(active.id, { name: name.trim(), scope: scopeLines, rootDir: rootDir.trim() || "~" });
+      await useEngagement.getState().update(active.id, {
+        name: name.trim(),
+        scope: scopeLines,
+        rootDir: rootDir.trim() || "~",
+        host: host.trim(),
+      });
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -330,15 +377,34 @@ function EditForm({ onClose }: { onClose: () => void }) {
         <span className="vy-eng-dialog-hint">one host / CIDR per line</span>
       </label>
       <label className="vy-eng-dialog-label">
-        Root directory <span className="vy-eng-dialog-label-aside">local Mac path</span>
+        Host <span className="vy-eng-dialog-label-aside">optional · SSH alias</span>
+        <input
+          className="vy-eng-dialog-input"
+          value={host}
+          onChange={(e) => setHost(e.target.value)}
+          placeholder="kali · blank for local Mac"
+        />
+        <span className="vy-eng-dialog-hint">
+          {host.trim()
+            ? `Workspace lives on ${host.trim()} (SFTP).`
+            : "Empty = local engagement (workspace on your Mac)."}
+        </span>
+      </label>
+      <label className="vy-eng-dialog-label">
+        Root directory{" "}
+        <span className="vy-eng-dialog-label-aside">
+          {isRemote ? `path on ${host.trim()}` : "local Mac path"}
+        </span>
         <input className="vy-eng-dialog-input" value={rootDir} onChange={(e) => setRootDir(e.target.value)} />
         <span className="vy-eng-dialog-hint">
-          Workspace folder on your Mac — created on save if it doesn't exist.
+          {isRemote
+            ? "Created on the remote via SFTP if it doesn't exist."
+            : "Workspace folder on your Mac — created on save if missing."}
         </span>
         {editLooksRemote && (
           <span className="vy-eng-dialog-warn">
-            That path looks like a remote box. Engagements live on your
-            Mac — pick a path under <code>~/engagements/…</code>.
+            That looks like a remote path but no Host is set. Either set
+            a host (mkdir runs on the remote) or use a local path.
           </span>
         )}
       </label>
