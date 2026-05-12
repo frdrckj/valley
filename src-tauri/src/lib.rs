@@ -67,6 +67,8 @@ pub fn run() {
             modules::git::git_diff,
             modules::ssh::ssh_list_dir,
             modules::ssh::ssh_create_dir,
+            modules::ssh::ssh_read_file,
+            modules::ssh::ssh_write_file,
             modules::ssh::ssh_disconnect,
             open_settings_window,
         ])

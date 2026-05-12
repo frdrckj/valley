@@ -327,6 +327,147 @@ pub async fn ssh_create_dir(
     }
 }
 
+/// Match `fs::ReadResult` from the local fs module — same shape so the
+/// renderer's `ReadResult` type covers both transports. Editor tabs
+/// branch on `kind` regardless of where the bytes came from.
+#[derive(serde::Serialize)]
+#[serde(tag = "kind", rename_all = "lowercase")]
+pub enum SshReadResult {
+    Text { content: String, size: usize },
+    Binary { size: usize },
+    Toolarge { size: usize, limit: usize },
+}
+
+/// Read-text-file ceiling. Mirrors the local `fs_read_file` limit so a
+/// remote file opening in a tab has the same affordances as a local
+/// one. Files past this point return `toolarge` and the editor shows
+/// the same "too big" placeholder.
+const SFTP_READ_TEXT_LIMIT: usize = 2 * 1024 * 1024;
+
+async fn read_file_inner(
+    state: &SshState,
+    host: &str,
+    path: &str,
+) -> Result<SshReadResult, String> {
+    let conn = get_or_connect(state, host).await?;
+    let conn = conn.lock().await;
+    let resolved = sftp_expand_tilde(&conn.sftp, path).await?;
+
+    // Stat first so we can return `toolarge` cleanly without slurping the
+    // whole file. canonicalize then metadata would be two RTTs; instead
+    // we open + read up to LIMIT+1 bytes and decide after.
+    use tokio::io::AsyncReadExt;
+    let mut file = tokio::time::timeout(
+        std::time::Duration::from_secs(OPERATION_TIMEOUT_SECS),
+        conn.sftp.open(&resolved),
+    )
+    .await
+    .map_err(|_| format!("sftp open {resolved}: timeout"))?
+    .map_err(|e| format!("sftp open {resolved}: {e}"))?;
+
+    let mut buf: Vec<u8> = Vec::new();
+    // Cap so a 5 GB file doesn't OOM the renderer.
+    let mut chunk = vec![0u8; 64 * 1024];
+    let mut hit_limit = false;
+    loop {
+        let n = tokio::time::timeout(
+            std::time::Duration::from_secs(OPERATION_TIMEOUT_SECS),
+            file.read(&mut chunk),
+        )
+        .await
+        .map_err(|_| format!("sftp read {resolved}: timeout"))?
+        .map_err(|e| format!("sftp read {resolved}: {e}"))?;
+        if n == 0 {
+            break;
+        }
+        buf.extend_from_slice(&chunk[..n]);
+        if buf.len() > SFTP_READ_TEXT_LIMIT {
+            hit_limit = true;
+            break;
+        }
+    }
+
+    if hit_limit {
+        return Ok(SshReadResult::Toolarge {
+            size: buf.len(),
+            limit: SFTP_READ_TEXT_LIMIT,
+        });
+    }
+    // Detect binary by NUL byte presence in the first 8 KiB — same
+    // heuristic the local fs_read_file uses, kept consistent so an
+    // editor tab can't render one transport's "binary" as text just
+    // because the other side was more permissive.
+    let probe = &buf[..buf.len().min(8 * 1024)];
+    if probe.contains(&0u8) {
+        return Ok(SshReadResult::Binary { size: buf.len() });
+    }
+    match String::from_utf8(buf) {
+        Ok(s) => {
+            let size = s.len();
+            Ok(SshReadResult::Text { content: s, size })
+        }
+        Err(e) => Ok(SshReadResult::Binary { size: e.into_bytes().len() }),
+    }
+}
+
+#[tauri::command]
+pub async fn ssh_read_file(
+    state: tauri::State<'_, SshState>,
+    host: String,
+    path: String,
+) -> Result<SshReadResult, String> {
+    let was_cached = state.conns.lock().contains_key(&host);
+    match read_file_inner(&state, &host, &path).await {
+        Ok(r) => Ok(r),
+        Err(first) if was_cached => {
+            state.conns.lock().remove(&host);
+            read_file_inner(&state, &host, &path)
+                .await
+                .map_err(|second| format!("{first}; reconnect failed: {second}"))
+        }
+        Err(e) => Err(e),
+    }
+}
+
+async fn write_file_inner(
+    state: &SshState,
+    host: &str,
+    path: &str,
+    contents: &str,
+) -> Result<(), String> {
+    let conn = get_or_connect(state, host).await?;
+    let conn = conn.lock().await;
+    let resolved = sftp_expand_tilde(&conn.sftp, path).await?;
+    tokio::time::timeout(
+        std::time::Duration::from_secs(OPERATION_TIMEOUT_SECS),
+        conn.sftp.write(&resolved, contents.as_bytes()),
+    )
+    .await
+    .map_err(|_| format!("sftp write {resolved}: timeout"))?
+    .map_err(|e| format!("sftp write {resolved}: {e}"))?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn ssh_write_file(
+    state: tauri::State<'_, SshState>,
+    host: String,
+    path: String,
+    contents: String,
+) -> Result<(), String> {
+    let was_cached = state.conns.lock().contains_key(&host);
+    match write_file_inner(&state, &host, &path, &contents).await {
+        Ok(()) => Ok(()),
+        Err(first) if was_cached => {
+            state.conns.lock().remove(&host);
+            write_file_inner(&state, &host, &path, &contents)
+                .await
+                .map_err(|second| format!("{first}; reconnect failed: {second}"))
+        }
+        Err(e) => Err(e),
+    }
+}
+
 #[tauri::command]
 pub async fn ssh_disconnect(
     state: tauri::State<'_, SshState>,

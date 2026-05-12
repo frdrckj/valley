@@ -85,6 +85,7 @@ export function FileTree({ root, host, collapsed, side = "left" }: FileTreeProps
               byPath={byPath}
               toggle={toggle}
               gitStatus={gitStatus}
+              host={mode.kind === "remote" ? mode.host : ""}
             />
           ))}
       </div>
@@ -134,9 +135,14 @@ interface BranchProps {
   byPath: Record<string, { expanded: boolean; children?: DirEntry[] }>;
   toggle: (path: string) => void;
   gitStatus: Map<string, { status: string }>;
+  /** Empty when the tree is rooted locally. Non-empty when this Branch
+   *  came from an SFTP listing — passed down so onClick can mark the
+   *  file tab as remote (host=<this>), routing reads/writes through
+   *  native.ssh.* instead of native.fs.*. */
+  host: string;
 }
 
-function Branch({ entry, depth, byPath, toggle, gitStatus }: BranchProps) {
+function Branch({ entry, depth, byPath, toggle, gitStatus, host }: BranchProps) {
   const node = byPath[entry.path];
   const expanded = entry.isDir && (node?.expanded ?? false);
   const ico = resolveIcon(entry.name, entry.isDir, expanded);
@@ -223,13 +229,22 @@ function Branch({ entry, depth, byPath, toggle, gitStatus }: BranchProps) {
       return;
     }
     const s = useTabs.getState();
+    // Two file tabs sharing a path but living on different hosts
+    // (`/etc/hosts` on kali vs locally) are different files — match on
+    // both. Without the host check, clicking a remote file would
+    // activate a stale local tab with the same name.
     const existing = s.tabs.find(
-      (t) => t.kind === "file" && t.path === entry.path,
+      (t) => t.kind === "file" && t.path === entry.path && (t.host ?? "") === host,
     );
     if (existing) {
       s.activate(existing.id);
     } else {
-      s.open({ kind: "file", label: entry.name, path: entry.path });
+      s.open({
+        kind: "file",
+        label: entry.name,
+        path: entry.path,
+        host: host || undefined,
+      });
     }
   }
 
@@ -279,6 +294,7 @@ function Branch({ entry, depth, byPath, toggle, gitStatus }: BranchProps) {
             byPath={byPath}
             toggle={toggle}
             gitStatus={gitStatus}
+            host={host}
           />
         ))}
     </>

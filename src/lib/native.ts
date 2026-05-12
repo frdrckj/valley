@@ -129,6 +129,23 @@ export const native = {
     createDir(host: string, path: string): Promise<void> {
       return tauriInvoke("ssh_create_dir", { host, path });
     },
+    /** SFTP read. Shape matches native.fs.readFile so editor tabs
+     *  branch on `kind` without caring about transport. Returns
+     *  `binary`/`toolarge` for non-text or oversize files. */
+    readFile(host: string, path: string): Promise<ReadResult> {
+      return tauriInvoke<ReadResult>("ssh_read_file", { host, path });
+    },
+    /** Convenience for callers that just want the text content of a
+     *  remote file. Throws for binary/oversize, same as fs.readText. */
+    async readText(host: string, path: string): Promise<string> {
+      const r = await tauriInvoke<ReadResult>("ssh_read_file", { host, path });
+      if (r.kind === "text") return r.content;
+      if (r.kind === "binary") throw new Error(`binary file: ${host}:${path}`);
+      throw new Error(`file too large: ${host}:${path} (${r.size} > ${r.limit})`);
+    },
+    writeFile(host: string, path: string, contents: string): Promise<void> {
+      return tauriInvoke("ssh_write_file", { host, path, contents });
+    },
     disconnect(host: string): Promise<void> {
       return tauriInvoke("ssh_disconnect", { host });
     },

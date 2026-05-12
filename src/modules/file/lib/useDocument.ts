@@ -18,10 +18,16 @@ export type DocumentState =
 
 interface Options {
   path: string;
+  /** SSH alias when the file lives on a remote host. Empty/undefined =
+   *  local Mac path; reads/writes route through native.fs. Anything
+   *  else routes through native.ssh (SFTP read/write). The choice is
+   *  per-tab so two file tabs — one local, one remote — coexist
+   *  without leaking state across each other. */
+  host?: string;
   onDirtyChange?: (dirty: boolean) => void;
 }
 
-export function useDocument({ path, onDirtyChange }: Options) {
+export function useDocument({ path, host, onDirtyChange }: Options) {
   const [doc, setDoc] = useState<DocumentState>({ status: "loading" });
   const [dirty, setDirty] = useState(false);
   const [reloadCounter, setReloadCounter] = useState(0);
@@ -46,8 +52,14 @@ export function useDocument({ path, onDirtyChange }: Options) {
     setDoc({ status: "loading" });
     setDirty(false);
 
-    native.fs
-      .readFile(path)
+    // Route based on `host`: SFTP for remote files, local fs otherwise.
+    // Both commands return the same `ReadResult` shape so the rest of
+    // the editor pipeline doesn't need to know which transport ran.
+    const reader = host
+      ? native.ssh.readFile(host, path)
+      : native.fs.readFile(path);
+
+    reader
       .then((res) => {
         if (cancelled) return;
         if (res.kind === "text") {
@@ -71,7 +83,7 @@ export function useDocument({ path, onDirtyChange }: Options) {
     return () => {
       cancelled = true;
     };
-  }, [path, reloadCounter]);
+  }, [path, host, reloadCounter]);
 
   /** Re-read from disk. Silent no-op if dirty (don't clobber user edits). */
   const reload = useCallback((): boolean => {
@@ -88,17 +100,19 @@ export function useDocument({ path, onDirtyChange }: Options) {
   const save = useCallback(async () => {
     if (!dirtyRef.current) return;
     const content = bufferRef.current;
-    // If this path is inside the Vite-watched tree, the chokidar event
-    // would trigger HMR and reload the whole page — wiping terminal
-    // sessions, scroll, selection. The valley-self-save plugin reads
-    // this socket message and mutes the next change for `path`.
-    if (typeof import.meta.hot !== "undefined") {
+    // HMR notification only matters for local files — there's no chance
+    // of a remote SFTP write triggering Vite's chokidar watcher.
+    if (!host && typeof import.meta.hot !== "undefined") {
       import.meta.hot?.send("valley:saved", { path });
     }
-    await native.fs.writeFile(path, content);
+    if (host) {
+      await native.ssh.writeFile(host, path, content);
+    } else {
+      await native.fs.writeFile(path, content);
+    }
     savedRef.current = content;
     setDirty(false);
-  }, [path]);
+  }, [path, host]);
 
   return { doc, dirty, onChange, save, reload };
 }

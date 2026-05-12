@@ -35,7 +35,14 @@ function TabBody({ tab, isActive }: { tab: Tab; isActive: boolean }) {
     return <PreviewPane tabId={tab.id} url={tab.url ?? "http://localhost:3000"} />;
   }
   if (tab.kind === "file") {
-    return <FileViewer tabId={tab.id} path={tab.path ?? ""} active={isActive} />;
+    return (
+      <FileViewer
+        tabId={tab.id}
+        path={tab.path ?? ""}
+        host={tab.host}
+        active={isActive}
+      />
+    );
   }
   if (tab.kind === "diff") {
     return (

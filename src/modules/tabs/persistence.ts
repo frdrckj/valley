@@ -16,6 +16,10 @@ interface PersistedTab {
   cwd?: string;
   url?: string;
   path?: string;
+  /** SSH alias for remote file tabs. Persisted so a tab restored across
+   *  sessions still reads/writes through SFTP, not a stale local read
+   *  that would error with "no such file". */
+  host?: string;
   userRenamed?: boolean;
   diffMode?: "working" | "staged";
 }
@@ -44,6 +48,7 @@ async function persistNow() {
     cwd: t.cwd,
     url: t.url,
     path: t.path,
+    host: t.host,
     userRenamed: t.userRenamed,
     diffMode: t.diffMode,
   }));
@@ -88,6 +93,7 @@ export async function hydrateTabs(): Promise<boolean> {
     cwd: p.cwd,
     url: p.url,
     path: p.path,
+    host: p.host,
     userRenamed: p.userRenamed,
     diffMode: p.diffMode,
     sessionId: `pty-${p.id}`,

@@ -16,6 +16,11 @@ export type Tab = {
   url?: string;
   /** File-tab / diff-tab absolute path. */
   path?: string;
+  /** SSH alias when this file tab points at a remote file. Empty/undef
+   *  means the path is on the local Mac. Set when the user clicks a
+   *  file in an SFTP-mounted sidebar. useDocument routes through
+   *  native.ssh.* when host is set, native.fs.* otherwise. */
+  host?: string;
   /** Set when the user manually renames the tab; suppresses cwd auto-labelling. */
   userRenamed?: boolean;
   /** File-tab unsaved-changes flag. Runtime-only; not persisted. */
@@ -67,6 +72,7 @@ export const useTabs = create<TabsState>((set, get) => ({
       sessionId: `pty-${id}`,
       url: input.url,
       path: input.path,
+      host: input.host,
       diffMode: input.diffMode,
     };
     set((s) => ({ tabs: [...s.tabs, tab], activeId: id }));

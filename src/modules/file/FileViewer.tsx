@@ -14,6 +14,9 @@ import { EDITOR_THEMES } from "./lib/editorThemes";
 interface FileViewerProps {
   tabId?: string;
   path: string;
+  /** SSH alias when this tab points at a remote SFTP file. useDocument
+   *  consults it to pick the right read/write transport. */
+  host?: string;
   /** True when the owning tab is the active tab. Drives auto-focus of
    *  the editor on tab switch so the user can type immediately. */
   active?: boolean;
@@ -29,7 +32,7 @@ interface FileViewerProps {
  *
  * Save is Cmd+S. Dirty state shows as a `•` next to the filename.
  */
-export function FileViewer({ tabId, path, active = true }: FileViewerProps) {
+export function FileViewer({ tabId, path, host, active = true }: FileViewerProps) {
   const themeId = resolveTheme(useSettings().theme);
   const cmRef = useRef<ReactCodeMirrorRef>(null);
   // Mirror dirty state into the owning tab so the title bar can render
@@ -45,7 +48,7 @@ export function FileViewer({ tabId, path, active = true }: FileViewerProps) {
       if (tabId) useTabs.getState().setDirty(tabId, false);
     };
   }, [tabId]);
-  const { doc, dirty, onChange, save } = useDocument({ path, onDirtyChange });
+  const { doc, dirty, onChange, save } = useDocument({ path, host, onDirtyChange });
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const filename = path ? (path.split("/").pop() ?? path) : "";
