@@ -41,6 +41,10 @@ interface GutterTheme {
 
 export interface BlockGutter {
   setTheme(theme: GutterTheme): void;
+  /** Recompute every mark's vertical rect. Call after layout changes
+   *  the gutter's own size or the xterm's row metrics — fit(), font
+   *  swap, visibility toggle, etc. */
+  reposition(): void;
   dispose(): void;
 }
 
@@ -53,17 +57,32 @@ export function attachBlockGutter(
   let theme = initialTheme;
   const marks = new Map<string, HTMLDivElement>();
 
-  // Row height in pixels. We derive it from the xterm-viewport's measured
-  // height divided by term.rows — pixel-perfect regardless of whether
-  // xterm is rendering via canvas (no .xterm-rows DOM children) or DOM
-  // mode, and adjusts automatically across DPR / font changes.
+  // Row height in pixels. Priority order:
+  //   1. xterm's `.xterm-rows` first child if present (DOM renderer
+  //      writes a real `<div>` per row — its offsetHeight is exact).
+  //   2. .xterm-viewport's clientHeight / term.rows — works in canvas
+  //      and WebGL mode, but vulnerable to sub-pixel rounding when the
+  //      viewport hasn't been re-measured after a font-size swap.
+  //   3. Computed from fontSize × lineHeight — last-resort fallback for
+  //      the brief window between mount and first fit().
+  // Recomputed on every call (cheap) so we always reflect the current
+  // metrics, not a stale snapshot from when the gutter was attached.
   function measureRowHeight(): number {
-    const viewport = term.element?.querySelector(
-      ".xterm-viewport",
-    ) as HTMLElement | null;
-    if (viewport && term.rows > 0) {
-      const h = viewport.clientHeight / term.rows;
-      if (h > 0) return h;
+    const root = term.element;
+    if (root) {
+      const firstRow = root.querySelector(
+        ".xterm-rows > div",
+      ) as HTMLElement | null;
+      if (firstRow && firstRow.offsetHeight > 0) {
+        return firstRow.offsetHeight;
+      }
+      const viewport = root.querySelector(
+        ".xterm-viewport",
+      ) as HTMLElement | null;
+      if (viewport && term.rows > 0) {
+        const h = viewport.clientHeight / term.rows;
+        if (h > 0) return h;
+      }
     }
     const fontSize = term.options.fontSize ?? 17;
     const lineHeight = term.options.lineHeight ?? 1.05;
@@ -188,6 +207,7 @@ export function attachBlockGutter(
       theme = next;
       repositionAll();
     },
+    reposition: repositionAll,
     dispose() {
       unsubTracker();
       scrollDispose.dispose();

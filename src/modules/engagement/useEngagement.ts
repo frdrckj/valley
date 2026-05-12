@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { Store } from "@tauri-apps/plugin-store";
+import { native } from "@/lib/native";
 
 export interface Engagement {
   id: string;
@@ -68,6 +69,14 @@ export const useEngagement = create<EngagementState>((set, get) => ({
       createdMs: now,
       updatedMs: now,
     };
+    // Materialize the root directory on disk so recents/explorer have
+    // somewhere real to land. Tilde is expanded by the Rust command, so
+    // user-typed `~/engagements/foo` works as-is. Failures bubble up so
+    // the dialog can surface a path error instead of leaving a record
+    // pointing at a directory that doesn't exist.
+    if (input.rootDir.trim()) {
+      await native.fs.createDir(input.rootDir.trim());
+    }
     set((s) => ({
       engagements: [eng, ...s.engagements],
       activeId: eng.id,
@@ -77,6 +86,11 @@ export const useEngagement = create<EngagementState>((set, get) => ({
   },
 
   async update(id, patch) {
+    // When the rootDir changes (or is set for the first time on an old
+    // record), mkdir it so the explorer + recents have a destination.
+    if (typeof patch.rootDir === "string" && patch.rootDir.trim()) {
+      await native.fs.createDir(patch.rootDir.trim());
+    }
     set((s) => ({
       engagements: s.engagements.map((e) =>
         e.id === id ? { ...e, ...patch, updatedMs: Date.now() } : e,

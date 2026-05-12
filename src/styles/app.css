@@ -235,7 +235,10 @@
   min-height: 0;
   min-width: 0;
   background: var(--surface-base);
-  border-left: 2px solid var(--accent-primary);
+  /* Focus indicator: 1 px subtle line at the very edge. The block-status
+     gutter (per-command color marks) lives 6 px in, so the two stripes
+     are clearly distinct — the focus border doesn't mimic a status mark. */
+  border-left: 1px solid var(--border-subtle);
   overflow: hidden;
 }
 /* Dev-server URL banner — appears at the bottom of a terminal pane when
@@ -1435,12 +1438,14 @@
    + resize. The gutter sits on top of the pane's left border. */
 .vy-block-gutter {
   position: absolute;
-  /* Sit just past the term-pane's 2px focus border so the two stripes
-     don't visually merge into a single ambiguous bar. */
-  left: 4px;
+  /* Sit 5 px past the 1 px focus border (so there's a clear 4 px gap
+     between the two stripes). 3 px wide bars are wide enough to see
+     at glance distance but thin enough to feel like a gutter, not a
+     second sidebar. */
+  left: 5px;
   top: 12px;     /* match xterm host's padding-top */
   bottom: 12px;  /* match xterm host's padding-bottom */
-  width: 4px;
+  width: 3px;
   pointer-events: none;
   z-index: 3;
   overflow: hidden;
@@ -1451,7 +1456,7 @@
   width: 100%;
   /* `top`, `height`, and `background` are set inline by blockGutter.ts.
      The class only modifies opacity so failed runs jump out more. */
-  border-radius: 1px;
+  border-radius: 1.5px;
   transition: opacity var(--dur-fast) var(--ease-standard);
   /* Marks live in the left margin (outside the xterm canvas), so
      enabling pointer-events for the native title-tooltip doesn't
@@ -1459,7 +1464,7 @@
   pointer-events: auto;
   cursor: help;
 }
-.vy-block-gutter-mark.is-ok   { opacity: 0.55; }
+.vy-block-gutter-mark.is-ok   { opacity: 0.7; }
 .vy-block-gutter-mark.is-fail { opacity: 0.95; }
 .vy-block-gutter-mark:hover   { opacity: 1; }
 
@@ -1820,6 +1825,59 @@
 }
 .vy-eng-dialog-row.is-active {
   background: color-mix(in srgb, var(--accent-primary) 15%, transparent);
+}
+/* Cursor highlight for keyboard navigation. Distinct from .is-active so
+   the operator can see "which row will Enter activate" without losing
+   the badge for the currently-active engagement. */
+.vy-eng-dialog-row.is-cursor {
+  outline: 1px solid var(--accent-primary);
+  outline-offset: -1px;
+}
+.vy-eng-dialog-row-del {
+  flex: none;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font: 500 10px var(--font-mono);
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-standard),
+              color var(--dur-fast) var(--ease-standard),
+              border-color var(--dur-fast) var(--ease-standard);
+}
+.vy-eng-dialog-row:hover .vy-eng-dialog-row-del,
+.vy-eng-dialog-row.is-cursor .vy-eng-dialog-row-del {
+  opacity: 1;
+}
+.vy-eng-dialog-row-del:hover {
+  color: var(--ansi-red, #ea6962);
+  border-color: var(--ansi-red, #ea6962);
+}
+.vy-eng-dialog-row-del.is-armed {
+  opacity: 1;
+  color: var(--ansi-red, #ea6962);
+  border-color: var(--ansi-red, #ea6962);
+  background: color-mix(in srgb, var(--ansi-red, #ea6962) 12%, transparent);
+}
+.vy-eng-dialog-switch:focus { outline: none; }
+.vy-eng-dialog-switch-hint {
+  padding: 6px 14px 10px;
+  text-align: center;
+  border-top: 1px solid var(--border-subtle);
+}
+.vy-eng-dialog-error {
+  margin: 0 16px 8px;
+  padding: 8px 10px;
+  font: 400 11.5px var(--font-mono);
+  color: var(--ansi-red, #ea6962);
+  background: color-mix(in srgb, var(--ansi-red, #ea6962) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ansi-red, #ea6962) 40%, transparent);
+  border-radius: var(--radius-sm);
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 .vy-eng-dialog-row-name {
   font: 500 12px var(--font-mono);

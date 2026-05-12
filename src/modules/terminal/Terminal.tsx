@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTerminalSession } from "./lib/useTerminalSession";
 import { useOmnibar } from "@/modules/omnibar/lib/useOmnibar";
+import { useSnippetPalette } from "@/modules/snippets/lib/useSnippetPalette";
+import { useDecodePanel } from "@/modules/decode/useDecodePanel";
+import { useEngagementDialog } from "@/modules/engagement/useEngagementDialog";
 import { useTabs } from "@/modules/tabs/useTabs";
 import { Icon } from "@/components/Icon";
 
@@ -59,24 +62,35 @@ export function Terminal({
     setDetectedUrl(null);
   }, [detectedUrl]);
 
-  // Reclaim focus when the omnibar closes (Esc / Cmd+P). Without this,
-  // closing the modal leaves focus on document.body and the user has to
-  // click into the pane to type. Detect a true→false transition rather
-  // than firing on every render so we don't steal focus mid-typing.
+  // Reclaim focus whenever any blocking overlay closes (omnibar, snippet
+  // palette, decode panel, engagement dialog). Without this, closing the
+  // modal leaves focus on document.body and the user has to click into
+  // the pane to type. We collapse all four sources into a single bool so
+  // the effect fires once on any transition true→false, regardless of
+  // which overlay actually closed. Each subscription is its own hook
+  // call (don't short-circuit hooks behind `||` — rules of hooks).
   const omnibarOpen = useOmnibar((s) => s.isOpen);
-  const prevOmnibarRef = useRef(omnibarOpen);
+  const snippetOpen = useSnippetPalette((s) => s.isOpen);
+  const decodeOpen = useDecodePanel((s) => s.isOpen);
+  const engDialogMode = useEngagementDialog((s) => s.mode);
+  const overlayOpen = omnibarOpen || snippetOpen || decodeOpen || engDialogMode !== "closed";
+  const prevOverlayRef = useRef(overlayOpen);
   useEffect(() => {
-    const wasOpen = prevOmnibarRef.current;
-    prevOmnibarRef.current = omnibarOpen;
-    if (wasOpen && !omnibarOpen && focused && tabActive) {
+    const wasOpen = prevOverlayRef.current;
+    prevOverlayRef.current = overlayOpen;
+    if (wasOpen && !overlayOpen && focused && tabActive) {
       session.focus();
     }
-  }, [omnibarOpen, focused, tabActive, session]);
+  }, [overlayOpen, focused, tabActive, session]);
 
   return (
     <div
       className="vy-term-pane"
-      style={{ borderLeftColor: focused ? "var(--accent-primary)" : "transparent" }}
+      style={{
+        borderLeftColor: focused
+          ? "var(--accent-primary)"
+          : "var(--border-subtle)",
+      }}
     >
       <div ref={gutterRef} className="vy-block-gutter" />
       <div ref={ref} className="vy-xterm-host" />

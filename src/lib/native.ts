@@ -77,6 +77,14 @@ export const native = {
     writeFile(path: string, contents: string): Promise<void> {
       return tauriInvoke("fs_write_file", { path, contents });
     },
+    /**
+     * Recursive mkdir (no-op if it already exists). Leading `~` and `~/`
+     * are expanded on the Rust side, so callers can pass user-typed paths
+     * unchanged.
+     */
+    createDir(path: string): Promise<void> {
+      return tauriInvoke("fs_create_dir", { path });
+    },
   },
   shell: {
     run(cmd: string, cwd?: string): Promise<{ stdout: string; stderr: string; code: number | null }> {

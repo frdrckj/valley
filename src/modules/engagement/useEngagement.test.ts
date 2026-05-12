@@ -15,6 +15,18 @@ vi.mock("@tauri-apps/plugin-store", () => {
   };
 });
 
+// Stub native.fs.createDir so create()/update() don't try to invoke a
+// real Tauri command in the jsdom test environment. The store under test
+// doesn't care whether the mkdir actually happened — that's an
+// integration concern handled by the Rust-side test for fs_create_dir.
+vi.mock("@/lib/native", () => ({
+  native: {
+    fs: {
+      createDir: vi.fn(async () => {}),
+    },
+  },
+}));
+
 import { useEngagement } from "./useEngagement";
 
 beforeEach(() => {

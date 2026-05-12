@@ -142,6 +142,9 @@ export function useTerminalSession({
 
   // Live font-size swap — re-fits xterm to the new cell metrics, then
   // dispatches a SIGWINCH-equivalent so the shell sees the new size.
+  // Row height changes here, so we ask the gutter to re-snap its marks
+  // against the new metrics. fit() is synchronous but the viewport's
+  // clientHeight only catches up after layout; defer to rAF.
   useEffect(() => {
     const term = termRef.current;
     const fit = fitRef.current;
@@ -149,7 +152,21 @@ export function useTerminalSession({
     term.options.fontSize = fontSizeSetting;
     fit.fit();
     void ptyRef.current?.resize(term.cols, term.rows);
-  }, [fontSizeSetting]);
+    requestAnimationFrame(() => {
+      gutterRegistry.get(sessionId)?.reposition();
+    });
+  }, [fontSizeSetting, sessionId]);
+
+  // Re-snap gutter marks whenever the terminal becomes visible again
+  // (overlay close, tab switch, fresh mount). Row height can shift
+  // between mount and first paint, and a stale `top` calc leaves marks
+  // floating between blocks until the next scroll or fit.
+  useEffect(() => {
+    if (!visible) return;
+    requestAnimationFrame(() => {
+      gutterRegistry.get(sessionId)?.reposition();
+    });
+  }, [visible, sessionId]);
 
   useEffect(() => {
     let disposed = false;

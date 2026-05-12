@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import { useEngagement } from "./useEngagement";
 import { useEngagementDialog } from "./useEngagementDialog";
 import { useTabs } from "@/modules/tabs/useTabs";
@@ -16,13 +22,23 @@ function NewForm({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState("");
   const [scope, setScope] = useState("");
   const [rootDir, setRootDir] = useState(defaultCwd);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim()) return;
-    const scopeLines = scope.split("\n").map((l) => l.trim()).filter(Boolean);
-    await useEngagement.getState().create({ name: name.trim(), scope: scopeLines, rootDir: rootDir.trim() || "~" });
-    onClose();
+    if (!name.trim() || busy) return;
+    setError(null);
+    setBusy(true);
+    try {
+      const scopeLines = scope.split("\n").map((l) => l.trim()).filter(Boolean);
+      await useEngagement.getState().create({ name: name.trim(), scope: scopeLines, rootDir: rootDir.trim() || "~" });
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -56,13 +72,15 @@ function NewForm({ onClose }: { onClose: () => void }) {
           onChange={(e) => setRootDir(e.target.value)}
           placeholder="~/engagements/acme"
         />
+        <span className="vy-eng-dialog-hint">created on save if it doesn't exist</span>
       </label>
+      {error && <div className="vy-eng-dialog-error">{error}</div>}
       <div className="vy-eng-dialog-actions">
         <button type="button" className="vy-eng-dialog-btn vy-eng-dialog-btn--ghost" onClick={onClose}>
           cancel
         </button>
-        <button type="submit" className="vy-eng-dialog-btn vy-eng-dialog-btn--primary" disabled={!name.trim()}>
-          create
+        <button type="submit" className="vy-eng-dialog-btn vy-eng-dialog-btn--primary" disabled={!name.trim() || busy}>
+          {busy ? "creating…" : "create"}
         </button>
       </div>
     </form>
@@ -76,6 +94,69 @@ function NewForm({ onClose }: { onClose: () => void }) {
 function SwitchList({ onClose }: { onClose: () => void }) {
   const engagements = useEngagement((s) => s.engagements);
   const activeId = useEngagement((s) => s.activeId);
+  // Highlight cursor for keyboard navigation. Starts on the active
+  // engagement when there is one, otherwise the first row.
+  const initialIdx = Math.max(
+    0,
+    engagements.findIndex((e) => e.id === activeId),
+  );
+  const [cursor, setCursor] = useState<number>(initialIdx);
+  // Two-click delete confirmation, scoped by engagement id so arming one
+  // row never accidentally arms another. Auto-disarms after 3 s.
+  const [armedDeleteId, setArmedDeleteId] = useState<string | null>(null);
+  const disarmRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => { if (disarmRef.current) clearTimeout(disarmRef.current); }, []);
+
+  // Re-snap the cursor when engagements list changes (e.g. after delete).
+  useEffect(() => {
+    if (engagements.length === 0) { setCursor(0); return; }
+    setCursor((i) => Math.min(i, engagements.length - 1));
+  }, [engagements.length]);
+
+  const activate = useCallback(async (id: string) => {
+    await useEngagement.getState().setActive(id);
+    onClose();
+  }, [onClose]);
+
+  const tryDelete = useCallback((id: string) => {
+    if (armedDeleteId === id) {
+      if (disarmRef.current) clearTimeout(disarmRef.current);
+      setArmedDeleteId(null);
+      void useEngagement.getState().remove(id);
+    } else {
+      setArmedDeleteId(id);
+      if (disarmRef.current) clearTimeout(disarmRef.current);
+      disarmRef.current = setTimeout(() => setArmedDeleteId(null), 3000);
+    }
+  }, [armedDeleteId]);
+
+  const onKey = useCallback((e: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (engagements.length === 0) return;
+    if (e.key === "ArrowDown" || (e.ctrlKey && !e.metaKey && e.key.toLowerCase() === "n")) {
+      e.preventDefault();
+      setCursor((i) => (i + 1) % engagements.length);
+      return;
+    }
+    if (e.key === "ArrowUp" || (e.ctrlKey && !e.metaKey && e.key.toLowerCase() === "p")) {
+      e.preventDefault();
+      setCursor((i) => (i - 1 + engagements.length) % engagements.length);
+      return;
+    }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const eng = engagements[cursor];
+      if (eng) void activate(eng.id);
+      return;
+    }
+    // Plain Delete/Backspace arms the highlighted row (two-press to commit)
+    if (e.key === "Delete" || e.key === "Backspace") {
+      e.preventDefault();
+      const eng = engagements[cursor];
+      if (eng) tryDelete(eng.id);
+      return;
+    }
+  }, [engagements, cursor, activate, tryDelete]);
 
   if (engagements.length === 0) {
     return (
@@ -84,21 +165,42 @@ function SwitchList({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <ul className="vy-eng-dialog-list">
-      {engagements.map((eng) => (
-        <li
-          key={eng.id}
-          className={`vy-eng-dialog-row${eng.id === activeId ? " is-active" : ""}`}
-          onClick={async () => {
-            await useEngagement.getState().setActive(eng.id);
-            onClose();
-          }}
-        >
-          <span className="vy-eng-dialog-row-name">{eng.name}</span>
-          <span className="vy-eng-dialog-row-meta">{eng.scope.length} in scope</span>
-        </li>
-      ))}
-    </ul>
+    <div
+      className="vy-eng-dialog-switch"
+      tabIndex={0}
+      autoFocus
+      onKeyDown={onKey}
+      ref={(el) => { el?.focus(); }}
+    >
+      <ul className="vy-eng-dialog-list">
+        {engagements.map((eng, idx) => {
+          const isCursor = idx === cursor;
+          const isArmed = armedDeleteId === eng.id;
+          return (
+            <li
+              key={eng.id}
+              className={`vy-eng-dialog-row${eng.id === activeId ? " is-active" : ""}${isCursor ? " is-cursor" : ""}`}
+              onMouseEnter={() => setCursor(idx)}
+              onClick={() => void activate(eng.id)}
+            >
+              <span className="vy-eng-dialog-row-name">{eng.name}</span>
+              <span className="vy-eng-dialog-row-meta">{eng.scope.length} in scope</span>
+              <button
+                type="button"
+                className={`vy-eng-dialog-row-del${isArmed ? " is-armed" : ""}`}
+                title={isArmed ? "click again to delete" : "delete engagement"}
+                onClick={(ev) => { ev.stopPropagation(); tryDelete(eng.id); }}
+              >
+                {isArmed ? "confirm" : "×"}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      <div className="vy-eng-dialog-hint vy-eng-dialog-switch-hint">
+        ↑↓ or ⌃N / ⌃P · Enter to switch · ⌫ / × to delete (two-press)
+      </div>
+    </div>
   );
 }
 
@@ -112,6 +214,8 @@ function EditForm({ onClose }: { onClose: () => void }) {
   const [scope, setScope] = useState(active?.scope.join("\n") ?? "");
   const [rootDir, setRootDir] = useState(active?.rootDir ?? "");
   const [deleteArmed, setDeleteArmed] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const disarmRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => { if (disarmRef.current) clearTimeout(disarmRef.current); }, []);
@@ -122,10 +226,18 @@ function EditForm({ onClose }: { onClose: () => void }) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!active || !name.trim()) return;
-    const scopeLines = scope.split("\n").map((l) => l.trim()).filter(Boolean);
-    await useEngagement.getState().update(active.id, { name: name.trim(), scope: scopeLines, rootDir: rootDir.trim() || "~" });
-    onClose();
+    if (!active || !name.trim() || busy) return;
+    setError(null);
+    setBusy(true);
+    try {
+      const scopeLines = scope.split("\n").map((l) => l.trim()).filter(Boolean);
+      await useEngagement.getState().update(active.id, { name: name.trim(), scope: scopeLines, rootDir: rootDir.trim() || "~" });
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
   }
 
   function handleDeleteClick() {
@@ -153,13 +265,15 @@ function EditForm({ onClose }: { onClose: () => void }) {
       <label className="vy-eng-dialog-label">
         Root directory
         <input className="vy-eng-dialog-input" value={rootDir} onChange={(e) => setRootDir(e.target.value)} />
+        <span className="vy-eng-dialog-hint">created on save if it doesn't exist</span>
       </label>
+      {error && <div className="vy-eng-dialog-error">{error}</div>}
       <div className="vy-eng-dialog-actions">
         <button type="button" className="vy-eng-dialog-btn vy-eng-dialog-btn--ghost" onClick={onClose}>
           cancel
         </button>
-        <button type="submit" className="vy-eng-dialog-btn vy-eng-dialog-btn--primary" disabled={!name.trim()}>
-          save
+        <button type="submit" className="vy-eng-dialog-btn vy-eng-dialog-btn--primary" disabled={!name.trim() || busy}>
+          {busy ? "saving…" : "save"}
         </button>
       </div>
       <div className="vy-eng-dialog-danger">
