@@ -7,11 +7,26 @@ import {
 } from "react";
 import { useEngagement } from "./useEngagement";
 import { useEngagementDialog } from "./useEngagementDialog";
-import { useTabs } from "@/modules/tabs/useTabs";
 
-function defaultCwd(): string {
-  const s = useTabs.getState();
-  return s.tabs.find((t) => t.id === s.activeId)?.cwd ?? "~";
+/** Slugify an engagement name into a filesystem-safe segment. */
+function slugify(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/**
+ * Default root-dir suggestion. ALWAYS a local Mac path under the user's
+ * home — engagements are a Valley-local notion (where Valley stores
+ * notes/recents/AI context for this scope of work). Even when the user
+ * is SSH'd to a remote box, the workspace folder lives on macOS; the
+ * remote work happens through `ssh <host>` inside terminals.
+ */
+function suggestRootDir(name: string): string {
+  const slug = slugify(name);
+  return slug ? `~/engagements/${slug}` : "";
 }
 
 /* ------------------------------------------------------------------ */
@@ -21,9 +36,23 @@ function defaultCwd(): string {
 function NewForm({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState("");
   const [scope, setScope] = useState("");
-  const [rootDir, setRootDir] = useState(defaultCwd);
+  const [rootDir, setRootDir] = useState("");
+  // Track whether the user typed the rootDir themselves. While false, we
+  // keep regenerating it from `name` — so the field auto-fills with a
+  // sensible local default as they type. The moment they edit it, we
+  // stop overwriting their input.
+  const [rootDirManual, setRootDirManual] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Live default: rootDir tracks the slugified name unless the user has
+  // taken control of the field. Avoids the trap where someone types a
+  // long engagement name and the rootDir defaults to the cwd of whichever
+  // terminal happens to be focused (especially confusing inside SSH).
+  useEffect(() => {
+    if (rootDirManual) return;
+    setRootDir(suggestRootDir(name));
+  }, [name, rootDirManual]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -40,6 +69,21 @@ function NewForm({ onClose }: { onClose: () => void }) {
       setBusy(false);
     }
   }
+
+  // Heuristic: a leading `/home/`, `/root`, `/etc`, or any non-tilde
+  // absolute path that doesn't start with `/Users/` (the macOS home
+  // root) is almost certainly a remote path the user typed because they
+  // were SSH'd. Surface a hint BEFORE submit instead of waiting for the
+  // mkdir to fail with a cryptic OS error.
+  const looksRemote =
+    rootDir.startsWith("/home/") ||
+    rootDir === "/root" ||
+    rootDir.startsWith("/root/") ||
+    (rootDir.startsWith("/") &&
+      !rootDir.startsWith("/Users/") &&
+      !rootDir.startsWith("/tmp") &&
+      !rootDir.startsWith("/private/") &&
+      !rootDir.startsWith("/opt/"));
 
   return (
     <form className="vy-eng-dialog-form" onSubmit={handleSubmit}>
@@ -65,14 +109,24 @@ function NewForm({ onClose }: { onClose: () => void }) {
         <span className="vy-eng-dialog-hint">one host / CIDR per line</span>
       </label>
       <label className="vy-eng-dialog-label">
-        Root directory
+        Root directory <span className="vy-eng-dialog-label-aside">local Mac path</span>
         <input
           className="vy-eng-dialog-input"
           value={rootDir}
-          onChange={(e) => setRootDir(e.target.value)}
+          onChange={(e) => { setRootDir(e.target.value); setRootDirManual(true); }}
           placeholder="~/engagements/acme"
         />
-        <span className="vy-eng-dialog-hint">created on save if it doesn't exist</span>
+        <span className="vy-eng-dialog-hint">
+          Valley stores notes here on your Mac. Even when you SSH to a
+          remote box, the workspace folder is local — auto-filled from
+          the name; you can override.
+        </span>
+        {looksRemote && (
+          <span className="vy-eng-dialog-warn">
+            That path looks like a remote box ({rootDir}). Engagements
+            live on your Mac — try <code>~/engagements/{slugify(name) || "<name>"}</code> instead.
+          </span>
+        )}
       </label>
       {error && <div className="vy-eng-dialog-error">{error}</div>}
       <div className="vy-eng-dialog-actions">
@@ -224,6 +278,19 @@ function EditForm({ onClose }: { onClose: () => void }) {
     return <p className="vy-eng-dialog-empty">No active engagement to edit.</p>;
   }
 
+  // Same remote-path heuristic as the New form so editing a previously
+  // created bad engagement (or one imported from another machine) gets
+  // the same gentle nudge.
+  const editLooksRemote =
+    rootDir.startsWith("/home/") ||
+    rootDir === "/root" ||
+    rootDir.startsWith("/root/") ||
+    (rootDir.startsWith("/") &&
+      !rootDir.startsWith("/Users/") &&
+      !rootDir.startsWith("/tmp") &&
+      !rootDir.startsWith("/private/") &&
+      !rootDir.startsWith("/opt/"));
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!active || !name.trim() || busy) return;
@@ -263,9 +330,17 @@ function EditForm({ onClose }: { onClose: () => void }) {
         <span className="vy-eng-dialog-hint">one host / CIDR per line</span>
       </label>
       <label className="vy-eng-dialog-label">
-        Root directory
+        Root directory <span className="vy-eng-dialog-label-aside">local Mac path</span>
         <input className="vy-eng-dialog-input" value={rootDir} onChange={(e) => setRootDir(e.target.value)} />
-        <span className="vy-eng-dialog-hint">created on save if it doesn't exist</span>
+        <span className="vy-eng-dialog-hint">
+          Workspace folder on your Mac — created on save if it doesn't exist.
+        </span>
+        {editLooksRemote && (
+          <span className="vy-eng-dialog-warn">
+            That path looks like a remote box. Engagements live on your
+            Mac — pick a path under <code>~/engagements/…</code>.
+          </span>
+        )}
       </label>
       {error && <div className="vy-eng-dialog-error">{error}</div>}
       <div className="vy-eng-dialog-actions">
