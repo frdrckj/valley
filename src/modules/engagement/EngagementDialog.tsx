@@ -8,7 +8,7 @@ import {
 import { useEngagement } from "./useEngagement";
 import { useEngagementDialog } from "./useEngagementDialog";
 import { useTabs } from "@/modules/tabs/useTabs";
-import { isLocalHost } from "@/lib/host";
+import { hydrateLocalHost, isLocalHost } from "@/lib/host";
 
 /** Slugify an engagement name into a filesystem-safe segment. */
 function slugify(name: string): string {
@@ -83,12 +83,13 @@ function activeTerminalHost(): string {
 function NewForm({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState("");
   const [scope, setScope] = useState("");
-  // Pre-fill the host from the active terminal's OSC-7 hostname. If the
-  // operator is sitting at a kali prompt right now (with shell
-  // integration installed), the field shows "kali" by default and the
-  // engagement workspace will be created on kali — matching the
-  // mental model "I'm working over here, put my files over here."
-  const [host, setHost] = useState(activeTerminalHost);
+  // Pre-fill the host from the active terminal's OSC-7 hostname, but
+  // ONLY after local-hostname hydration has resolved (see hostManual
+  // effect below). Initial render keeps the field empty so we don't
+  // briefly show the Mac's own hostname before isLocalHost() can filter
+  // it out — that was the v0.4.3 bug.
+  const [host, setHost] = useState("");
+  const [hostManual, setHostManual] = useState(false);
   const [rootDir, setRootDir] = useState("");
   // Track whether the user typed the rootDir themselves. While false we
   // keep regenerating it from `name` — auto-fills the field with a
@@ -96,6 +97,25 @@ function NewForm({ onClose }: { onClose: () => void }) {
   const [rootDirManual, setRootDirManual] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Pre-fill the Host field from the active terminal — but only once
+  // local-hostname hydration has finished. If we read it synchronously
+  // on mount, `isLocalHost` can't yet tell that our own hostname is us,
+  // so the field would get auto-filled with the Mac's name and the
+  // dialog would later try to SFTP-to-localhost. Awaiting first means
+  // `activeTerminalHost()` (which calls `activeTerminalContext()`
+  // which calls `isLocalHost`) returns "" for the local case.
+  useEffect(() => {
+    if (hostManual) return;
+    let cancelled = false;
+    void hydrateLocalHost().then(() => {
+      if (cancelled) return;
+      const initial = activeTerminalHost();
+      // Only set if we haven't been edited mid-await.
+      setHost((cur) => (cur === "" ? initial : cur));
+    });
+    return () => { cancelled = true; };
+  }, [hostManual]);
 
   // Recompute the default whenever the name OR host changes. Host
   // matters because the suggested parent depends on whether the cwd of
@@ -171,7 +191,7 @@ function NewForm({ onClose }: { onClose: () => void }) {
         <input
           className="vy-eng-dialog-input"
           value={host}
-          onChange={(e) => setHost(e.target.value)}
+          onChange={(e) => { setHost(e.target.value); setHostManual(true); }}
           placeholder="kali · leave blank for local Mac"
         />
         <span className="vy-eng-dialog-hint">

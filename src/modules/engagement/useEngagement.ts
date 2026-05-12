@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { Store } from "@tauri-apps/plugin-store";
 import { native } from "@/lib/native";
+import { isLocalHost } from "@/lib/host";
 
 export interface Engagement {
   id: string;
@@ -65,7 +66,11 @@ export const useEngagement = create<EngagementState>((set, get) => ({
 
   async create(input) {
     const now = Date.now();
-    const host = input.host?.trim() || undefined;
+    // Normalize: a host that resolves to ourselves becomes empty so
+    // we never try to SFTP-to-localhost on port 22 (which fails when
+    // macOS sshd isn't enabled — the default).
+    const rawHost = input.host?.trim();
+    const host = rawHost && !isLocalHost(rawHost) ? rawHost : undefined;
     const eng: Engagement = {
       id: genId(),
       name: input.name,
@@ -109,7 +114,8 @@ export const useEngagement = create<EngagementState>((set, get) => ({
     // doesn't touch it.
     if (typeof patch.rootDir === "string" && patch.rootDir.trim()) {
       const current = get().engagements.find((e) => e.id === id);
-      const host = (patch.host ?? current?.host ?? "").trim() || undefined;
+      const rawHost = (patch.host ?? current?.host ?? "").trim();
+      const host = rawHost && !isLocalHost(rawHost) ? rawHost : undefined;
       const path = patch.rootDir.trim();
       if (host) {
         await native.ssh.createDir(host, path);
@@ -123,8 +129,14 @@ export const useEngagement = create<EngagementState>((set, get) => ({
           ? {
               ...e,
               ...patch,
-              // Empty string for host should clear it, not stick around.
-              host: patch.host !== undefined ? (patch.host.trim() || undefined) : e.host,
+              // Empty / local-resolving host should clear it, not stick.
+              host:
+                patch.host !== undefined
+                  ? (() => {
+                      const t = patch.host.trim();
+                      return t && !isLocalHost(t) ? t : undefined;
+                    })()
+                  : e.host,
               updatedMs: Date.now(),
             }
           : e,

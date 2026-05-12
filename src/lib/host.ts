@@ -16,20 +16,41 @@
 import { hostname as platformHostname } from "@tauri-apps/plugin-os";
 
 let localHost = "";
+let hydration: Promise<void> | null = null;
 
-export async function hydrateLocalHost(): Promise<void> {
-  try {
-    localHost = (await platformHostname()) ?? "";
-  } catch {
-    // Best-effort; an empty cache just means we won't dedupe local
-    // hostnames — same as v0.4.2 behavior.
-  }
+function startHydration(): Promise<void> {
+  if (hydration) return hydration;
+  hydration = (async () => {
+    try {
+      localHost = (await platformHostname()) ?? "";
+    } catch {
+      // Best-effort; an empty cache just means we won't dedupe local
+      // hostnames — same as v0.4.2 behavior.
+    }
+  })();
+  return hydration;
+}
+
+/**
+ * Eagerly trigger hydration. Idempotent — multiple callers share one
+ * in-flight promise. Returns when the cache is populated (or the
+ * platform call gave up). Callers that need to *use* the cached value
+ * should await this first.
+ */
+export function hydrateLocalHost(): Promise<void> {
+  return startHydration();
 }
 
 /** Cached local hostname (case-preserved). Empty until hydration. */
 export function getLocalHost(): string {
   return localHost;
 }
+
+// Kick off hydration the moment this module is imported. Most consumers
+// arrive milliseconds after this fires, so by the time they ask
+// `isLocalHost()` the cache is already warm. A late consumer can still
+// await `hydrateLocalHost()` to be sure.
+void startHydration();
 
 function normalize(h: string): string {
   return h.toLowerCase().replace(/\.local$/, "");
