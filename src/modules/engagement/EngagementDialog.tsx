@@ -19,6 +19,20 @@ function slugify(name: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+/** Mirror of useEngagement's isMacLocalPath — paths only macOS uses.
+ *  When the typed root is Mac-shaped, the workspace MUST be local even
+ *  if the Host field has a value. Kept in sync with the runtime guard
+ *  in useEngagement.ts; that one is the source of truth. */
+function isMacLocalPath(p: string): boolean {
+  return (
+    p.startsWith("/Users/") ||
+    p.startsWith("/private/") ||
+    p.startsWith("/Volumes/") ||
+    p.startsWith("/Applications/") ||
+    p.startsWith("/Library/")
+  );
+}
+
 /**
  * Default root-dir suggestion.
  *
@@ -161,7 +175,12 @@ function NewForm({ onClose }: { onClose: () => void }) {
         !rootDir.startsWith("/private/") &&
         !rootDir.startsWith("/opt/")));
 
-  const isRemote = Boolean(host.trim());
+  // Path overrides host: a `/Users/…` style path is unambiguously
+  // macOS, so we'll force-route to local mkdir regardless of what's in
+  // the Host field. Keeps the UI honest with what useEngagement.create
+  // will actually do.
+  const pathForcesLocal = isMacLocalPath(rootDir);
+  const isRemote = Boolean(host.trim()) && !pathForcesLocal;
 
   return (
     <form className="vy-eng-dialog-form" onSubmit={handleSubmit}>
@@ -195,9 +214,11 @@ function NewForm({ onClose }: { onClose: () => void }) {
           placeholder="kali · leave blank for local Mac"
         />
         <span className="vy-eng-dialog-hint">
-          {host.trim()
-            ? `Workspace will be created on ${host.trim()} via SFTP. Uses your ~/.ssh/config + ssh-agent.`
-            : "Empty = local engagement (workspace lives on your Mac)."}
+          {pathForcesLocal && host.trim()
+            ? `Path looks like macOS (${rootDir}) — host will be ignored and workspace created locally.`
+            : host.trim()
+              ? `Workspace will be created on ${host.trim()} via SFTP. Uses your ~/.ssh/config + ssh-agent.`
+              : "Empty = local engagement (workspace lives on your Mac)."}
         </span>
       </label>
       <label className="vy-eng-dialog-label">

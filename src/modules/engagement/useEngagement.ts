@@ -3,6 +3,25 @@ import { Store } from "@tauri-apps/plugin-store";
 import { native } from "@/lib/native";
 import { isLocalHost } from "@/lib/host";
 
+/**
+ * A path that is unambiguously macOS. `/Users/<user>/…` and a few other
+ * Apple-specific roots only exist on a Mac — no Linux distro uses them
+ * for home dirs, no Windows path looks like this. When the engagement
+ * root matches this shape, the workspace must be local regardless of
+ * what the user typed in the Host field. This is the safety net for the
+ * case where local-hostname hydration hasn't completed yet OR
+ * gethostname() returned something we can't compare against.
+ */
+function isMacLocalPath(p: string): boolean {
+  return (
+    p.startsWith("/Users/") ||
+    p.startsWith("/private/") ||
+    p.startsWith("/Volumes/") ||
+    p.startsWith("/Applications/") ||
+    p.startsWith("/Library/")
+  );
+}
+
 export interface Engagement {
   id: string;
   name: string;
@@ -66,11 +85,17 @@ export const useEngagement = create<EngagementState>((set, get) => ({
 
   async create(input) {
     const now = Date.now();
-    // Normalize: a host that resolves to ourselves becomes empty so
-    // we never try to SFTP-to-localhost on port 22 (which fails when
-    // macOS sshd isn't enabled — the default).
+    // Normalize host. A path that's obviously macOS-shaped (`/Users/…`,
+    // `/private/var/…`, or `/Volumes/…`) ALWAYS wins — those locations
+    // only exist on a Mac so the engagement must be local, even if the
+    // user typed a non-local-looking host. Otherwise we filter hosts
+    // that resolve to ourselves (local hostname, localhost, 127.x, ::1)
+    // so we never try to SFTP-to-localhost on port 22 (which fails
+    // when macOS sshd isn't enabled — the default).
     const rawHost = input.host?.trim();
-    const host = rawHost && !isLocalHost(rawHost) ? rawHost : undefined;
+    const pathIsMac = isMacLocalPath(input.rootDir);
+    const host =
+      pathIsMac || !rawHost || isLocalHost(rawHost) ? undefined : rawHost;
     const eng: Engagement = {
       id: genId(),
       name: input.name,
@@ -115,8 +140,11 @@ export const useEngagement = create<EngagementState>((set, get) => ({
     if (typeof patch.rootDir === "string" && patch.rootDir.trim()) {
       const current = get().engagements.find((e) => e.id === id);
       const rawHost = (patch.host ?? current?.host ?? "").trim();
-      const host = rawHost && !isLocalHost(rawHost) ? rawHost : undefined;
       const path = patch.rootDir.trim();
+      const host =
+        isMacLocalPath(path) || !rawHost || isLocalHost(rawHost)
+          ? undefined
+          : rawHost;
       if (host) {
         await native.ssh.createDir(host, path);
       } else {
