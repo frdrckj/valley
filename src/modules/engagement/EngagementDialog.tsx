@@ -19,25 +19,53 @@ function slugify(name: string): string {
 }
 
 /**
- * Default root-dir suggestion — `~/engagements/<slug>`. Same shape for
- * local and remote engagements; the difference is which `~` it resolves
- * against. Local: `$HOME` on the Mac. Remote: SSH user's home on the
- * box, expanded server-side via SFTP canonicalize.
+ * Default root-dir suggestion.
+ *
+ * Preferred form: `<active-terminal-cwd>/<slug>`. When the operator is
+ * already sitting at `/home/kali/Documents/pentest` (local or SSH),
+ * creating an engagement named "canonical" should land at
+ * `/home/kali/Documents/pentest/canonical` — the cwd is the natural
+ * parent. We only use the active cwd when the engagement's host matches
+ * where the cwd was reported from; mixing a local cwd into a remote
+ * engagement (or vice versa) would land the workspace on the wrong
+ * filesystem.
+ *
+ * Fallback: `~/engagements/<slug>`. Used when there's no active cwd or
+ * the host doesn't match. Tildes resolve server-side for SSH and
+ * locally for Mac, so this stays portable.
  */
-function suggestRootDir(name: string): string {
+function suggestRootDir(name: string, host: string): string {
   const slug = slugify(name);
-  return slug ? `~/engagements/${slug}` : "";
+  if (!slug) return "";
+  const ctx = activeTerminalContext();
+  const hostMatches = (host.trim() || "") === (ctx.host || "");
+  if (ctx.cwd && hostMatches) {
+    const parent = ctx.cwd.replace(/\/+$/, "");
+    return `${parent}/${slug}`;
+  }
+  return `~/engagements/${slug}`;
 }
 
-/**
- * Active terminal's OSC-7 host, if any. Returns a non-empty string when
- * the focused tab is inside an SSH session whose remote shell emits OSC
- * 7 with the hostname authority (Valley's integration script does;
- * vanilla kali zsh does not until the user installs it).
- */
-function activeTerminalHost(): string {
+interface TerminalContext {
+  /** Active terminal's OSC-7-reported cwd, or null. */
+  cwd: string | null;
+  /** Active terminal's OSC-7-reported hostname authority. Empty for
+   *  local shells or remote shells whose integration doesn't include
+   *  the hostname (vanilla kali zsh until the user installs ours). */
+  host: string;
+}
+
+function activeTerminalContext(): TerminalContext {
   const s = useTabs.getState();
-  return s.tabs.find((t) => t.id === s.activeId)?.cwdHost ?? "";
+  const tab = s.tabs.find((t) => t.id === s.activeId);
+  return {
+    cwd: tab?.cwd ?? null,
+    host: tab?.cwdHost ?? "",
+  };
+}
+
+function activeTerminalHost(): string {
+  return activeTerminalContext().host;
 }
 
 /* ------------------------------------------------------------------ */
@@ -61,10 +89,14 @@ function NewForm({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // Recompute the default whenever the name OR host changes. Host
+  // matters because the suggested parent depends on whether the cwd of
+  // the active terminal is on the same machine the engagement targets.
+  // Effect bails the moment the user takes over the field.
   useEffect(() => {
     if (rootDirManual) return;
-    setRootDir(suggestRootDir(name));
-  }, [name, rootDirManual]);
+    setRootDir(suggestRootDir(name, host));
+  }, [name, host, rootDirManual]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -153,13 +185,13 @@ function NewForm({ onClose }: { onClose: () => void }) {
         />
         <span className="vy-eng-dialog-hint">
           {isRemote
-            ? `Created on ${host.trim()} via SFTP (recursive). \`~\` expands to the remote SSH user's home.`
-            : "Workspace folder on your Mac — created on save if it doesn't exist."}
+            ? `Created on ${host.trim()} via SFTP (recursive). Defaults to your terminal's cwd + slug when host matches; otherwise \`~/engagements/<slug>\`.`
+            : "Workspace folder on your Mac. Defaults to your terminal's cwd + slug; you can override."}
         </span>
         {looksRemote && (
           <span className="vy-eng-dialog-warn">
             That looks like a remote path but no Host is set. Either set
-            a host (so mkdir runs on the remote) or use <code>~/engagements/{slugify(name) || "<name>"}</code> for a local engagement.
+            a host (so mkdir runs on the remote) or use a local path.
           </span>
         )}
       </label>
