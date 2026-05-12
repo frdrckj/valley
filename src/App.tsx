@@ -201,12 +201,20 @@ export default function App() {
   const activeEngagement = useEngagement((s) => s.active());
   const engRootDir = activeEngagement?.rootDir ?? "";
   const engHost = activeEngagement?.host ?? "";
-  // Normalize: hostnames that resolve to the local machine become "".
-  // Without this, the local shell's OSC-7-reported hostname (which is
-  // the Mac's own name) would force the explorer into its SFTP fallback
-  // — sshd usually isn't even running on macOS.
-  const explorerRoot = engRootDir || activeCwd || WORKSPACE_ROOT;
-  const explorerHostRaw = engHost || activeCwdHost;
+  // Explorer follows the active terminal's cwd — even when an
+  // engagement is active. The earlier "anchor explorer at engagement
+  // root" model conflicted with real exploration: `cd /var/log` or
+  // `cd ~` should rebuild the tree at the new path, not stay stuck on
+  // an empty workspace folder.
+  //
+  // Engagement only contributes when the terminal hasn't reported its
+  // cwd yet (cold app, no OSC-7 emitted). After that, the terminal
+  // wins. Engagement still drives snippet $TARGET, omnibar recents
+  // scope, AI context, and the status-bar chip — those don't conflict
+  // with navigation. Hostnames that resolve to ourselves get filtered
+  // so the explorer doesn't try its SFTP fallback against localhost.
+  const explorerRoot = activeCwd || engRootDir || WORKSPACE_ROOT;
+  const explorerHostRaw = activeCwdHost || engHost;
   const explorerHost = isLocalHost(explorerHostRaw) ? "" : explorerHostRaw;
 
   useEffect(() => {

@@ -1476,6 +1476,32 @@
 /* Tree empty/error state when the active cwd isn't on this machine
    (most commonly: user SSH'd somewhere). Status bar still shows the
    path; the sidebar just can't walk a remote filesystem. */
+.vy-tree-empty {
+  padding: 16px 14px;
+  font: 400 12px var(--font-mono);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.vy-tree-empty-title {
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 12px;
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+.vy-tree-empty-sub {
+  color: var(--accent-primary);
+  font-size: 11px;
+  word-break: break-all;
+  opacity: 0.7;
+}
+.vy-tree-empty-hint {
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.45;
+  opacity: 0.7;
+}
 .vy-tree-unreachable {
   padding: 16px 14px;
   font: 400 12px var(--font-mono);
@@ -1648,6 +1674,38 @@
   color: var(--text-muted);
   font-size: 10px;
 }
+/* Wrap so the clear button sits flush against the chip and reads as
+   one unit. Inline-flex so the two buttons line up centrally. */
+.vy-statusbar-engagement-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.vy-statusbar-engagement-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  margin-left: 2px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0.4;
+  transition: opacity var(--dur-fast) var(--ease-standard),
+              color var(--dur-fast) var(--ease-standard),
+              background var(--dur-fast) var(--ease-standard);
+}
+.vy-statusbar-engagement-wrap:hover .vy-statusbar-engagement-clear {
+  opacity: 1;
+}
+.vy-statusbar-engagement-clear:hover {
+  color: var(--ansi-red, #ea6962);
+  background: var(--hover-tint);
+}
 /* Remote engagements get the yellow "remote" treatment to match the
    snippet palette chip — at a glance, "this engagement's files live
    somewhere other than your Mac." */
@@ -1798,6 +1856,18 @@
 }
 .vy-eng-dialog-row.is-active {
   background: color-mix(in srgb, var(--accent-primary) 15%, transparent);
+}
+/* "(no engagement)" row — visually muted to read as a state, not a
+   peer engagement. Separator below to group it apart from real
+   engagement entries. */
+.vy-eng-dialog-row--clear {
+  border-bottom: 1px dashed var(--border-subtle);
+  margin-bottom: 4px;
+  padding-bottom: 10px;
+}
+.vy-eng-dialog-row-name--muted {
+  color: var(--text-muted);
+  font-style: italic;
 }
 /* Cursor highlight for keyboard navigation. Distinct from .is-active so
    the operator can see "which row will Enter activate" without losing

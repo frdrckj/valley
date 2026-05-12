@@ -41,27 +41,38 @@ export function StatusBar({ aiState = "ready" }: StatusBarProps) {
       </span>
 
       {activeEngagement && (
-        <button
-          type="button"
-          className={`vy-statusbar-engagement${activeEngagement.host ? " is-remote" : ""}`}
-          onClick={openEngagementSwitch}
-          title={
-            activeEngagement.host
-              ? `Engagement: ${activeEngagement.name} — workspace on ${activeEngagement.host} (${activeEngagement.rootDir}) — click to switch`
-              : `Engagement: ${activeEngagement.name} (${activeEngagement.rootDir}) — click to switch`
-          }
-        >
-          <Icon name="pin" size={11} />
-          {activeEngagement.name}
-          {activeEngagement.host && (
-            <span className="vy-statusbar-engagement-host">
-              @{activeEngagement.host}
+        <span className="vy-statusbar-engagement-wrap">
+          <button
+            type="button"
+            className={`vy-statusbar-engagement${activeEngagement.host ? " is-remote" : ""}`}
+            onClick={openEngagementSwitch}
+            title={
+              activeEngagement.host
+                ? `Engagement: ${activeEngagement.name} — workspace on ${activeEngagement.host} (${activeEngagement.rootDir}) — click to switch`
+                : `Engagement: ${activeEngagement.name} (${activeEngagement.rootDir}) — click to switch`
+            }
+          >
+            <Icon name="pin" size={11} />
+            {activeEngagement.name}
+            {activeEngagement.host && (
+              <span className="vy-statusbar-engagement-host">
+                @{activeEngagement.host}
+              </span>
+            )}
+            <span className="vy-statusbar-engagement-scope">
+              · {activeEngagement.scope.length} in scope
             </span>
-          )}
-          <span className="vy-statusbar-engagement-scope">
-            · {activeEngagement.scope.length} in scope
-          </span>
-        </button>
+          </button>
+          <button
+            type="button"
+            className="vy-statusbar-engagement-clear"
+            onClick={() => void useEngagement.getState().setActive(null)}
+            title="Stop using this engagement — use Valley like a regular terminal"
+            aria-label="Clear active engagement"
+          >
+            <Icon name="x" size={9} />
+          </button>
+        </span>
       )}
 
       {cwdLabel && (

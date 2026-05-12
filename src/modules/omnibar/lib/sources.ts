@@ -291,6 +291,20 @@ export function getCommands(): CommandItem[] {
         });
       },
     },
+    {
+      // Power-user path for "stop using engagements" — equivalent to
+      // picking "(no engagement)" in the Switch dialog. No-op if the
+      // user already has no active engagement.
+      kind: "command",
+      id: "engagement.deactivate",
+      label: "Engagement: Stop using current",
+      run: () => {
+        import("@/modules/engagement/useEngagement").then(({ useEngagement }) => {
+          if (!useEngagement.getState().activeId) return;
+          void useEngagement.getState().setActive(null);
+        });
+      },
+    },
   ];
 }
 

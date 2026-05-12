@@ -5,7 +5,7 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
-import { useEngagement } from "./useEngagement";
+import { useEngagement, type Engagement } from "./useEngagement";
 import { useEngagementDialog } from "./useEngagementDialog";
 import { useTabs } from "@/modules/tabs/useTabs";
 import { hydrateLocalHost, isLocalHost } from "@/lib/host";
@@ -261,16 +261,36 @@ function NewForm({ onClose }: { onClose: () => void }) {
 /*  Switch mode list                                                    */
 /* ------------------------------------------------------------------ */
 
+type SwitchRow =
+  | { kind: "clear" }
+  | { kind: "eng"; eng: Engagement };
+
 function SwitchList({ onClose }: { onClose: () => void }) {
   const engagements = useEngagement((s) => s.engagements);
   const activeId = useEngagement((s) => s.activeId);
-  // Highlight cursor for keyboard navigation. Starts on the active
-  // engagement when there is one, otherwise the first row.
-  const initialIdx = Math.max(
-    0,
-    engagements.findIndex((e) => e.id === activeId),
-  );
-  const [cursor, setCursor] = useState<number>(initialIdx);
+
+  // When an engagement IS active, prepend a "(no engagement)" pseudo-
+  // row so the user can deactivate from the same place they switch.
+  // Without it, there's no UI path to "use Valley like a regular
+  // terminal" — switching just rotated between engagements.
+  const rows: SwitchRow[] = [
+    ...(activeId ? [{ kind: "clear" as const }] : []),
+    ...engagements.map((eng) => ({ kind: "eng" as const, eng })),
+  ];
+
+  // Cursor starts on the active engagement, falling back to the first
+  // row. Index is into `rows`, not `engagements` — when the clear row
+  // is present, engagements live at indices 1..N.
+  const initialIdx = (() => {
+    if (engagements.length === 0) return 0;
+    const engIdx = engagements.findIndex((e) => e.id === activeId);
+    if (engIdx < 0) return 0;
+    return rows.findIndex(
+      (r) => r.kind === "eng" && r.eng.id === engagements[engIdx]!.id,
+    );
+  })();
+  const [cursor, setCursor] = useState<number>(Math.max(0, initialIdx));
+
   // Two-click delete confirmation, scoped by engagement id so arming one
   // row never accidentally arms another. Auto-disarms after 3 s.
   const [armedDeleteId, setArmedDeleteId] = useState<string | null>(null);
@@ -278,16 +298,27 @@ function SwitchList({ onClose }: { onClose: () => void }) {
 
   useEffect(() => () => { if (disarmRef.current) clearTimeout(disarmRef.current); }, []);
 
-  // Re-snap the cursor when engagements list changes (e.g. after delete).
+  // Re-snap the cursor when row list changes (e.g. after delete or
+  // when the active engagement clears, removing the clear row).
   useEffect(() => {
-    if (engagements.length === 0) { setCursor(0); return; }
-    setCursor((i) => Math.min(i, engagements.length - 1));
-  }, [engagements.length]);
+    if (rows.length === 0) { setCursor(0); return; }
+    setCursor((i) => Math.min(i, rows.length - 1));
+  }, [rows.length]);
 
   const activate = useCallback(async (id: string) => {
     await useEngagement.getState().setActive(id);
     onClose();
   }, [onClose]);
+
+  const deactivate = useCallback(async () => {
+    await useEngagement.getState().setActive(null);
+    onClose();
+  }, [onClose]);
+
+  const commit = useCallback((row: SwitchRow) => {
+    if (row.kind === "clear") void deactivate();
+    else void activate(row.eng.id);
+  }, [activate, deactivate]);
 
   const tryDelete = useCallback((id: string) => {
     if (armedDeleteId === id) {
@@ -302,33 +333,34 @@ function SwitchList({ onClose }: { onClose: () => void }) {
   }, [armedDeleteId]);
 
   const onKey = useCallback((e: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (engagements.length === 0) return;
+    if (rows.length === 0) return;
     if (e.key === "ArrowDown" || (e.ctrlKey && !e.metaKey && e.key.toLowerCase() === "n")) {
       e.preventDefault();
-      setCursor((i) => (i + 1) % engagements.length);
+      setCursor((i) => (i + 1) % rows.length);
       return;
     }
     if (e.key === "ArrowUp" || (e.ctrlKey && !e.metaKey && e.key.toLowerCase() === "p")) {
       e.preventDefault();
-      setCursor((i) => (i - 1 + engagements.length) % engagements.length);
+      setCursor((i) => (i - 1 + rows.length) % rows.length);
       return;
     }
     if (e.key === "Enter") {
       e.preventDefault();
-      const eng = engagements[cursor];
-      if (eng) void activate(eng.id);
+      const row = rows[cursor];
+      if (row) commit(row);
       return;
     }
-    // Plain Delete/Backspace arms the highlighted row (two-press to commit)
+    // Plain Delete/Backspace arms the highlighted row's delete (engagements
+    // only — there's nothing to delete on the clear row).
     if (e.key === "Delete" || e.key === "Backspace") {
       e.preventDefault();
-      const eng = engagements[cursor];
-      if (eng) tryDelete(eng.id);
+      const row = rows[cursor];
+      if (row && row.kind === "eng") tryDelete(row.eng.id);
       return;
     }
-  }, [engagements, cursor, activate, tryDelete]);
+  }, [rows, cursor, commit, tryDelete]);
 
-  if (engagements.length === 0) {
+  if (rows.length === 0) {
     return (
       <p className="vy-eng-dialog-empty">No engagements yet — create one first.</p>
     );
@@ -343,8 +375,27 @@ function SwitchList({ onClose }: { onClose: () => void }) {
       ref={(el) => { el?.focus(); }}
     >
       <ul className="vy-eng-dialog-list">
-        {engagements.map((eng, idx) => {
+        {rows.map((row, idx) => {
           const isCursor = idx === cursor;
+          if (row.kind === "clear") {
+            return (
+              <li
+                key="__clear__"
+                className={`vy-eng-dialog-row vy-eng-dialog-row--clear${isCursor ? " is-cursor" : ""}`}
+                onMouseEnter={() => setCursor(idx)}
+                onClick={() => void deactivate()}
+                title="Use Valley like a regular terminal — workspace decoupled from any engagement."
+              >
+                <span className="vy-eng-dialog-row-name vy-eng-dialog-row-name--muted">
+                  (no engagement)
+                </span>
+                <span className="vy-eng-dialog-row-meta">
+                  use Valley as a plain terminal
+                </span>
+              </li>
+            );
+          }
+          const eng = row.eng;
           const isArmed = armedDeleteId === eng.id;
           return (
             <li

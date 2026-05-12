@@ -63,6 +63,20 @@ export function FileTree({ root, host, collapsed, side = "left" }: FileTreeProps
           </div>
         )}
         {(mode.kind === "local" || mode.kind === "remote") &&
+          topLevel.length === 0 && (
+            <div className="vy-tree-empty">
+              <div className="vy-tree-empty-title">empty directory</div>
+              <div className="vy-tree-empty-sub" title={root}>
+                {root}
+              </div>
+              <div className="vy-tree-empty-hint">
+                {mode.kind === "remote"
+                  ? `Nothing here yet on ${mode.host}. Drop notes, scripts, or loot — they'll appear instantly.`
+                  : "Nothing here yet. Create files or run commands and they'll appear instantly."}
+              </div>
+            </div>
+          )}
+        {(mode.kind === "local" || mode.kind === "remote") &&
           topLevel.map((e) => (
             <Branch
               key={e.path}
