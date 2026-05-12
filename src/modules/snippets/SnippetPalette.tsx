@@ -132,7 +132,7 @@ export function SnippetPalette() {
   }, []);
 
   const applySnippet = useCallback(
-    (snippet: Snippet) => {
+    (snippet: Snippet, autoRun: boolean) => {
       const settings = getSettingsSnapshot();
       // $TARGET resolution order:
       //   1. The active engagement's first in-scope host — what the
@@ -149,13 +149,19 @@ export function SnippetPalette() {
         target: engTarget || settings.snippetTarget || undefined,
         port: settings.snippetPort || undefined,
       });
+      // When the user wants to review/edit before firing (the default
+      // Enter path), we paste the body and stop. The user hits Enter
+      // themselves once the line looks right. autoRun=true (⌘⏎) appends
+      // a CR so the shell executes immediately — same byte zsh produces
+      // for a real Enter keypress at the prompt.
+      const payload = autoRun ? body + "\r" : body;
 
       close();
 
       const s = useTabs.getState();
       const tab = s.tabs.find((t) => t.id === s.activeId);
       if (tab && tab.kind === "terminal" && tab.sessionId) {
-        void native.pty.write(tab.sessionId, body);
+        void native.pty.write(tab.sessionId, payload);
         return;
       }
       // Fallback: copy to clipboard
@@ -185,11 +191,25 @@ export function SnippetPalette() {
         return;
       }
       if (e.key === "Enter") {
+        // preventDefault + stopPropagation so the Enter never leaks past
+        // the palette. Without these the keypress reaches the xterm
+        // helper textarea once focus returns to the terminal, which
+        // sends a CR to the PTY and runs whatever we just pasted —
+        // exactly the auto-execute bug the user hit.
+        e.preventDefault();
+        e.stopPropagation();
         const selected = flat[clampedIdx];
-        if (selected) applySnippet(selected);
+        if (selected) {
+          // ⌘⏎ (or ⌃⏎ on linux/windows-style ctrl) = send + run.
+          // Plain Enter = paste only, user reviews + runs themselves.
+          const autoRun = e.metaKey || e.ctrlKey;
+          applySnippet(selected, autoRun);
+        }
         return;
       }
       if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
         close();
         return;
       }
@@ -211,7 +231,7 @@ export function SnippetPalette() {
           <input
             ref={inputRef}
             className="vy-snippet-palette-input"
-            placeholder="Fuzzy-search payloads · ⌘⇧K to toggle"
+            placeholder="Fuzzy-search payloads · ⏎ paste · ⌘⏎ paste + run"
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
@@ -269,7 +289,7 @@ export function SnippetPalette() {
                       snippet={snippet}
                       isActive={idx === clampedIdx}
                       rowRef={idx === clampedIdx ? activeRowRef : undefined}
-                      onSelect={applySnippet}
+                      onSelect={(snippet, autoRun) => applySnippet(snippet, autoRun)}
                       onHover={() => setActiveIdx(idx)}
                     />
                   );
@@ -301,7 +321,9 @@ interface SnippetRowProps {
   snippet: Snippet;
   isActive: boolean;
   rowRef?: React.MutableRefObject<HTMLDivElement | null>;
-  onSelect(s: Snippet): void;
+  /** `autoRun` mirrors the keyboard semantics: plain click = paste only,
+   *  ⌘/⌃ + click = paste and execute. */
+  onSelect(s: Snippet, autoRun: boolean): void;
   onHover(): void;
 }
 
@@ -317,7 +339,7 @@ function SnippetRow({
     <div
       ref={rowRef}
       className={`vy-snippet-palette-row${isActive ? " is-active" : ""}`}
-      onMouseDown={() => onSelect(snippet)}
+      onMouseDown={(e) => onSelect(snippet, e.metaKey || e.ctrlKey)}
       onMouseEnter={onHover}
     >
       <span

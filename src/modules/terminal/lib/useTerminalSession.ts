@@ -13,7 +13,6 @@ import {
   xtermMarkerSource,
   type BlockTracker,
 } from "./blocks";
-import { attachBlockGutter, type BlockGutter } from "./blockGutter";
 import { useTabs } from "@/modules/tabs/useTabs";
 import { getSettingsSnapshot, useSettings } from "@/lib/settings";
 import { getTheme, resolveTheme } from "@/modules/theme/themes";
@@ -45,10 +44,6 @@ export function getBlockTrackerFor(sessionId: string): BlockTracker | null {
   return blockRegistry.get(sessionId) ?? null;
 }
 
-/** Per-session gutter renderer registry — consulted by the theme-swap
- *  effect so block colors update when the user changes themes. */
-const gutterRegistry = new Map<string, BlockGutter>();
-
 /**
  * Per-session xterm reference. Used by the prompt-nav handler to
  * `scrollToLine` after looking up the target line via the tracker.
@@ -72,11 +67,6 @@ export interface UseTerminalSessionOptions {
    *  Lets the chrome offer a "Open preview" affordance without burying
    *  the user in re-fires every time the dev-server logs a request. */
   onDetectedLocalUrl?: (url: string) => void;
-  /** Optional element where block status marks should render. When
-   *  omitted, the tracker still runs (so prompt-nav works) but no
-   *  visual gutter is painted. Pass the `<div class="vy-block-gutter">`
-   *  rendered alongside the xterm host in Terminal.tsx. */
-  gutter?: React.RefObject<HTMLElement | null>;
 }
 
 export interface UseTerminalSession {
@@ -104,7 +94,6 @@ export function useTerminalSession({
   onExit,
   onSearchReady,
   onDetectedLocalUrl,
-  gutter,
 }: UseTerminalSessionOptions): UseTerminalSession {
   const settings = useSettings();
   const themeSetting = settings.theme;
@@ -133,18 +122,10 @@ export function useTerminalSession({
     if (!term) return;
     const xt = getTheme(resolveTheme(themeSetting)).xterm;
     term.options.theme = xt;
-    // Repaint block marks in the new palette.
-    gutterRegistry.get(sessionId)?.setTheme({
-      ok: xt.green ?? "#a9b665",
-      fail: xt.red ?? "#ea6962",
-    });
-  }, [themeSetting, sessionId]);
+  }, [themeSetting]);
 
   // Live font-size swap — re-fits xterm to the new cell metrics, then
   // dispatches a SIGWINCH-equivalent so the shell sees the new size.
-  // Row height changes here, so we ask the gutter to re-snap its marks
-  // against the new metrics. fit() is synchronous but the viewport's
-  // clientHeight only catches up after layout; defer to rAF.
   useEffect(() => {
     const term = termRef.current;
     const fit = fitRef.current;
@@ -152,21 +133,7 @@ export function useTerminalSession({
     term.options.fontSize = fontSizeSetting;
     fit.fit();
     void ptyRef.current?.resize(term.cols, term.rows);
-    requestAnimationFrame(() => {
-      gutterRegistry.get(sessionId)?.reposition();
-    });
-  }, [fontSizeSetting, sessionId]);
-
-  // Re-snap gutter marks whenever the terminal becomes visible again
-  // (overlay close, tab switch, fresh mount). Row height can shift
-  // between mount and first paint, and a stale `top` calc leaves marks
-  // floating between blocks until the next scroll or fit.
-  useEffect(() => {
-    if (!visible) return;
-    requestAnimationFrame(() => {
-      gutterRegistry.get(sessionId)?.reposition();
-    });
-  }, [visible, sessionId]);
+  }, [fontSizeSetting]);
 
   useEffect(() => {
     let disposed = false;
@@ -263,30 +230,18 @@ export function useTerminalSession({
       cleanups.push(() => termRegistry.delete(sessionId));
 
       // Block tracker — opens a block on each prompt-A, closes on D.
-      // The tracker is purely data; rendering is the gutter's job.
+      // No visual gutter is rendered (removed in v0.3.4 because pixel
+      // alignment with xterm's row metrics was fragile across font/DPR
+      // changes and the bar drew misleading marks beside SSH sessions
+      // whose remote shells don't emit OSC 133). The tracker still
+      // backs prompt-prev/next nav (⌘⇧↑/⌘⇧↓) and the copy-block
+      // shortcut (⌘⇧C), so it stays.
       const tracker = createBlockTracker(xtermMarkerSource(term));
       blockRegistry.set(sessionId, tracker);
       cleanups.push(() => {
         tracker.dispose();
         blockRegistry.delete(sessionId);
       });
-
-      // Wire DOM gutter (a sibling to the xterm host) if the host
-      // provided one. The gutter listens to tracker events + scroll +
-      // resize and paints absolute-positioned divs by pixel offset, so
-      // marks live OUTSIDE the terminal grid and never obscure content.
-      const gutterEl = gutter?.current;
-      let gutterApi: BlockGutter | null = null;
-      if (gutterEl) {
-        const xt = getTheme(resolveTheme(getSettingsSnapshot().theme)).xterm;
-        gutterApi = attachBlockGutter(term, tracker, gutterEl, {
-          ok: xt.green ?? "#a9b665",
-          fail: xt.red ?? "#ea6962",
-        });
-        cleanups.push(() => gutterApi?.dispose());
-        gutterRegistry.set(sessionId, gutterApi);
-        cleanups.push(() => gutterRegistry.delete(sessionId));
-      }
 
       // Path-link provider — turns `/Users/me/foo.ts:42` printed by
       // tsc/cargo/pytest/etc. into a clickable link that opens the file

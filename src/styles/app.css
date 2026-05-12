@@ -1430,44 +1430,6 @@
 }
 .vy-xterm-host .xterm-viewport { background: var(--surface-base) !important; }
 
-/* ----- Block status gutter (per-command status indicator) -----
-   DOM overlay positioned in the LEFT MARGIN of the terminal pane,
-   outside the xterm canvas — so marks never obscure terminal content.
-   blockGutter.ts absolute-positions one .vy-block-gutter-mark per
-   exited command at the row's pixel offset, and re-positions on scroll
-   + resize. The gutter sits on top of the pane's left border. */
-.vy-block-gutter {
-  position: absolute;
-  /* Sit 5 px past the 1 px focus border (so there's a clear 4 px gap
-     between the two stripes). 3 px wide bars are wide enough to see
-     at glance distance but thin enough to feel like a gutter, not a
-     second sidebar. */
-  left: 5px;
-  top: 12px;     /* match xterm host's padding-top */
-  bottom: 12px;  /* match xterm host's padding-bottom */
-  width: 3px;
-  pointer-events: none;
-  z-index: 3;
-  overflow: hidden;
-}
-.vy-block-gutter-mark {
-  position: absolute;
-  left: 0;
-  width: 100%;
-  /* `top`, `height`, and `background` are set inline by blockGutter.ts.
-     The class only modifies opacity so failed runs jump out more. */
-  border-radius: 1.5px;
-  transition: opacity var(--dur-fast) var(--ease-standard);
-  /* Marks live in the left margin (outside the xterm canvas), so
-     enabling pointer-events for the native title-tooltip doesn't
-     interfere with terminal selection or scroll. */
-  pointer-events: auto;
-  cursor: help;
-}
-.vy-block-gutter-mark.is-ok   { opacity: 0.7; }
-.vy-block-gutter-mark.is-fail { opacity: 0.95; }
-.vy-block-gutter-mark:hover   { opacity: 1; }
-
 /* "connecting…" shown while the SFTP backend is opening a session. */
 .vy-tree-status {
   padding: 16px 14px;

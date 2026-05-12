@@ -25,7 +25,6 @@ export function Terminal({
   tabActive = true,
 }: TerminalProps) {
   const ref = useRef<HTMLDivElement | null>(null);
-  const gutterRef = useRef<HTMLDivElement | null>(null);
   // Most-recent localhost URL the shell printed. The banner offers to
   // open it as a preview tab. `null` after dismiss or after the user
   // accepts; another URL can replace it.
@@ -43,7 +42,6 @@ export function Terminal({
     visible: focused && tabActive,
     initialCwd: cwd,
     onDetectedLocalUrl: handleDetectedLocalUrl,
-    gutter: gutterRef,
   });
 
   const openPreview = useCallback(() => {
@@ -92,7 +90,6 @@ export function Terminal({
           : "var(--border-subtle)",
       }}
     >
-      <div ref={gutterRef} className="vy-block-gutter" />
       <div ref={ref} className="vy-xterm-host" />
       {detectedUrl && (
         <div className="vy-url-banner" role="status">

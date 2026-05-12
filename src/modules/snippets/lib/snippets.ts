@@ -248,4 +248,70 @@ export const SNIPPETS: Snippet[] = [
     body: "lsof -i :$PORT",
     hint: "macOS + Linux",
   },
+  // ── shell integration installers ────────────────────────────────────────
+  // These paste an idempotent block at the end of the remote shell's rc
+  // file so OSC 7 (cwd) and OSC 133 (prompt markers) start firing from
+  // the remote prompt. Result: the file-explorer can follow `cd` on the
+  // remote, and ⌘⇧↑/⌘⇧↓/⌘⇧C work over SSH like they do locally.
+  // The guard line (`# >>> valley shell integration <<<`) lets the
+  // installer detect prior installs and skip — paste-and-run is safe to
+  // repeat. Each block runs `cat >> ~/.<rc>` so the user can review the
+  // line first; nothing executes until they hit Enter themselves.
+  {
+    id: "shell-integration-zsh",
+    category: "utility",
+    title: "Install Valley shell integration (zsh on remote)",
+    body:
+      "grep -q '>>> valley shell integration <<<' ~/.zshrc 2>/dev/null || cat >> ~/.zshrc <<'VALLEY_EOF'\n" +
+      "# >>> valley shell integration <<<\n" +
+      "if [[ -n \"$TMUX\" ]]; then\n" +
+      "    __valley_emit() { printf '\\033Ptmux;\\033%s\\033\\\\' \"$1\"; }\n" +
+      "else\n" +
+      "    __valley_emit() { printf '%s' \"$1\"; }\n" +
+      "fi\n" +
+      "__valley_osc7()        { __valley_emit \"$(printf '\\033]7;file://%s%s\\a' \"$HOST\" \"$PWD\")\"; }\n" +
+      "__valley_osc133_pre()  { __valley_emit $'\\033]133;A\\a'; }\n" +
+      "__valley_osc133_exec() { __valley_emit $'\\033]133;C\\a'; }\n" +
+      "__valley_osc133_done() { __valley_emit \"$(printf '\\033]133;D;%s\\a' \"$?\")\"; }\n" +
+      "autoload -Uz add-zsh-hook 2>/dev/null || true\n" +
+      "__valley_precmd()  { __valley_osc133_done; __valley_osc133_pre; __valley_osc7; }\n" +
+      "__valley_preexec() { __valley_osc133_exec; }\n" +
+      "add-zsh-hook precmd  __valley_precmd\n" +
+      "add-zsh-hook preexec __valley_preexec\n" +
+      "# <<< valley shell integration >>>\n" +
+      "VALLEY_EOF",
+    hint: "appends OSC 7 + OSC 133 hooks to ~/.zshrc (idempotent)",
+  },
+  {
+    id: "shell-integration-bash",
+    category: "utility",
+    title: "Install Valley shell integration (bash on remote)",
+    body:
+      "grep -q '>>> valley shell integration <<<' ~/.bashrc 2>/dev/null || cat >> ~/.bashrc <<'VALLEY_EOF'\n" +
+      "# >>> valley shell integration <<<\n" +
+      "if [ -n \"$TMUX\" ]; then\n" +
+      "    __valley_emit() { printf '\\033Ptmux;\\033%s\\033\\\\' \"$1\"; }\n" +
+      "else\n" +
+      "    __valley_emit() { printf '%s' \"$1\"; }\n" +
+      "fi\n" +
+      "__valley_osc7()        { __valley_emit \"$(printf '\\033]7;file://%s%s\\a' \"$HOSTNAME\" \"$PWD\")\"; }\n" +
+      "__valley_osc133_pre()  { __valley_emit '\\033]133;A\\a'; }\n" +
+      "__valley_osc133_exec() { __valley_emit '\\033]133;C\\a'; }\n" +
+      "__valley_osc133_done() { __valley_emit \"$(printf '\\033]133;D;%s\\a' \"$?\")\"; }\n" +
+      "__valley_prompt_command() {\n" +
+      "    local last=$?\n" +
+      "    __valley_osc133_done\n" +
+      "    __valley_osc133_pre\n" +
+      "    __valley_osc7\n" +
+      "    return $last\n" +
+      "}\n" +
+      "case \"$PROMPT_COMMAND\" in\n" +
+      "    *__valley_prompt_command*) ;;\n" +
+      "    *) PROMPT_COMMAND=\"__valley_prompt_command${PROMPT_COMMAND:+;$PROMPT_COMMAND}\" ;;\n" +
+      "esac\n" +
+      "trap '__valley_osc133_exec' DEBUG\n" +
+      "# <<< valley shell integration >>>\n" +
+      "VALLEY_EOF",
+    hint: "appends OSC 7 + OSC 133 hooks to ~/.bashrc (idempotent)",
+  },
 ];

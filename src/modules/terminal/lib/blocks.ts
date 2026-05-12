@@ -9,10 +9,12 @@ import type { IMarker } from "@xterm/xterm";
  * where no D ever fires).
  *
  * The tracker is purely a data manager: it owns the block list and emits
- * events. Visual rendering is the host's responsibility (see
- * `blockGutter.ts`) — keeping rendering out of the tracker means we can
- * unit-test the lifecycle without xterm and swap rendering strategies
- * (xterm decoration vs. DOM overlay) without touching this file.
+ * events. There is no visual gutter — the tracker exists to power the
+ * prompt-prev/next shortcuts (⌘⇧↑/⌘⇧↓) and the copy-current-block
+ * shortcut (⌘⇧C). A previous DOM-overlay renderer was removed in v0.3.4
+ * because pixel-aligning marks against xterm's row metrics was fragile
+ * across font swaps + DPR changes, and the marks were misleading inside
+ * SSH sessions whose remote shells don't emit OSC 133.
  */
 
 export type BlockStatus = "running" | "ok" | "fail";
