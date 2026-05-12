@@ -21,6 +21,7 @@ import {
 } from "@/lib/screen";
 import { useLayout, type Side } from "@/lib/layout";
 import { hydrateSettings, useSettings, patchSettings, getSettingsSnapshot } from "@/lib/settings";
+import { hydrateLocalHost, isLocalHost } from "@/lib/host";
 import { applyChromeTheme, getTheme, resolveTheme } from "@/modules/theme/themes";
 import { setLive } from "@/lib/workspace";
 import { native } from "@/lib/native";
@@ -200,11 +201,21 @@ export default function App() {
   const activeEngagement = useEngagement((s) => s.active());
   const engRootDir = activeEngagement?.rootDir ?? "";
   const engHost = activeEngagement?.host ?? "";
+  // Normalize: hostnames that resolve to the local machine become "".
+  // Without this, the local shell's OSC-7-reported hostname (which is
+  // the Mac's own name) would force the explorer into its SFTP fallback
+  // — sshd usually isn't even running on macOS.
   const explorerRoot = engRootDir || activeCwd || WORKSPACE_ROOT;
-  const explorerHost = engHost || activeCwdHost;
+  const explorerHostRaw = engHost || activeCwdHost;
+  const explorerHost = isLocalHost(explorerHostRaw) ? "" : explorerHostRaw;
 
   useEffect(() => {
     void hydrateSettings();
+    // Cache the local Mac hostname so we can recognise OSC-7 authorities
+    // that point at ourselves (the local shell integration emits the
+    // Mac's hostname). Without this, the engagement dialog would mis-
+    // identify the local machine as a remote SSH target.
+    void hydrateLocalHost();
   }, []);
 
   useEffect(() => {

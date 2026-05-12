@@ -8,6 +8,7 @@ import {
 import { useEngagement } from "./useEngagement";
 import { useEngagementDialog } from "./useEngagementDialog";
 import { useTabs } from "@/modules/tabs/useTabs";
+import { isLocalHost } from "@/lib/host";
 
 /** Slugify an engagement name into a filesystem-safe segment. */
 function slugify(name: string): string {
@@ -58,9 +59,16 @@ interface TerminalContext {
 function activeTerminalContext(): TerminalContext {
   const s = useTabs.getState();
   const tab = s.tabs.find((t) => t.id === s.activeId);
+  const rawHost = tab?.cwdHost ?? "";
+  // The local shell integration emits OSC 7 with the Mac's own
+  // hostname. That's not a remote SSH target — it's still us. Treat
+  // anything that resolves to the local machine as host=empty so the
+  // dialog doesn't try to SFTP back to ourselves on port 22 (which
+  // fails with `Connection refused` unless the user has sshd enabled
+  // on macOS, which most don't).
   return {
     cwd: tab?.cwd ?? null,
-    host: tab?.cwdHost ?? "",
+    host: isLocalHost(rawHost) ? "" : rawHost,
   };
 }
 

@@ -271,8 +271,12 @@ async fn create_dir_all_inner(
 
     let resolved = sftp_expand_tilde(&conn.sftp, path).await?;
 
-    // Split into cumulative segments and try each. We MUST proceed past
-    // "file exists" — that's the expected case for parent dirs.
+    // Walk segments. For each cumulative path: stat first; if it
+    // exists, skip (regardless of whether the server would have
+    // returned ALREADY_EXISTS or just generic FAILURE — OpenSSH's
+    // sftp-server returns the latter for /home and other system dirs).
+    // Only call create_dir when we know the path is missing. This
+    // also keeps the call idempotent across SFTP server quirks.
     let mut acc = if resolved.starts_with('/') {
         String::from("/")
     } else {
@@ -283,26 +287,23 @@ async fn create_dir_all_inner(
             acc.push('/');
         }
         acc.push_str(seg);
-        match tokio::time::timeout(
+        let exists = tokio::time::timeout(
+            std::time::Duration::from_secs(OPERATION_TIMEOUT_SECS),
+            conn.sftp.try_exists(acc.clone()),
+        )
+        .await
+        .map_err(|_| format!("sftp stat {acc}: timeout"))?
+        .unwrap_or(false);
+        if exists {
+            continue;
+        }
+        tokio::time::timeout(
             std::time::Duration::from_secs(OPERATION_TIMEOUT_SECS),
             conn.sftp.create_dir(acc.clone()),
         )
         .await
-        {
-            Ok(Ok(())) => {}
-            Ok(Err(e)) => {
-                // FILE_ALREADY_EXISTS / PERMISSION_DENIED — first one is
-                // fine, second only matters at the leaf. russh-sftp's
-                // Error::Display includes the SFTP status; we match
-                // lossily on the substring rather than crack it open.
-                let msg = e.to_string();
-                if msg.contains("already exists") || msg.contains("AlreadyExists") {
-                    continue;
-                }
-                return Err(format!("sftp mkdir {acc}: {msg}"));
-            }
-            Err(_) => return Err(format!("sftp mkdir {acc}: timeout")),
-        }
+        .map_err(|_| format!("sftp mkdir {acc}: timeout"))?
+        .map_err(|e| format!("sftp mkdir {acc}: {e}"))?;
     }
     Ok(())
 }
